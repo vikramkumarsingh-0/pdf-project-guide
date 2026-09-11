@@ -9,6 +9,9 @@ import type { MaterialDoc } from '@/lib/recommendation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { useServerFn } from '@tanstack/react-start'
+import { materialSubmissionSchema } from '@/lib/material-schemas'
+import { publishMaterial, reviewMaterial } from '@/lib/materials.functions'
 
 export const Route = createFileRoute('/_authenticated/admin/materials')({
   head: () => ({ meta: [
@@ -36,6 +39,9 @@ function Materials() {
   const [rejecting, setRejecting] = useState<string | null>(null)
   const [reason, setReason] = useState('')
   const [busy, setBusy] = useState<string | null>(null)
+  const [file, setFile] = useState<File | null>(null)
+  const reviewFn = useServerFn(reviewMaterial)
+  const publishFn = useServerFn(publishMaterial)
 
   async function load() {
     const [materials, subjectResult] = await Promise.all([
@@ -57,16 +63,35 @@ function Materials() {
 
   async function save(event: React.FormEvent) {
     event.preventDefault()
-    const payload = { title:form.title, description:form.description, subject_id:form.subject_id, type:form.type, url:form.url, tags:form.tags.split(',').map(tag => tag.trim()).filter(Boolean), uploaded_by:user.id, approval_status:'approved' as const, reviewed_by:user.id, reviewed_at:new Date().toISOString() }
-    const result = edit ? await supabase.from('materials').update(payload).eq('id', edit) : await supabase.from('materials').insert(payload)
-    if (result.error) { toast.error(result.error.message); return }
-    toast.success(edit ? 'Material updated' : 'Material published')
-    setForm(blank); setEdit(null); void load()
+    setBusy(edit ?? 'publish')
+    let filePath: string | null = null
+    try {
+      if (file) {
+        if (!['application/pdf', 'video/mp4', 'video/webm'].includes(file.type) || file.size > 15 * 1024 * 1024) throw new Error('Upload a PDF, MP4, or WebM file up to 15 MB')
+        filePath = `${user.id}/${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '-')}`
+        const upload = await supabase.storage.from('study-materials').upload(filePath, file, { contentType: file.type })
+        if (upload.error) throw upload.error
+      }
+      if (edit) {
+        const payload = { title:form.title.trim(), description:form.description.trim(), subject_id:form.subject_id, type:form.type, url:form.url.trim(), tags:form.tags.split(',').map(tag => tag.trim()).filter(Boolean), ...(file ? { file_path:filePath, file_name:file.name, file_mime_type:file.type, file_size_bytes:file.size } : {}) }
+        const result = await supabase.from('materials').update(payload).eq('id', edit)
+        if (result.error) throw result.error
+      } else {
+        const payload = materialSubmissionSchema.parse({ title:form.title, description:form.description, subjectId:form.subject_id, type:form.type, url:form.url === 'https://' ? '' : form.url, tags:form.tags.split(',').map(tag => tag.trim()).filter(Boolean), filePath, fileName:file?.name ?? null, fileMimeType:file?.type ?? null, fileSizeBytes:file?.size ?? null })
+        await publishFn({ data: payload })
+      }
+      toast.success(edit ? 'Material updated' : 'Material published')
+      setForm(blank); setEdit(null); setFile(null); void load()
+    } catch (error) {
+      if (filePath) await supabase.storage.from('study-materials').remove([filePath])
+      toast.error(error instanceof Error ? error.message : 'Could not save material')
+    } finally { setBusy(null) }
   }
 
   async function approve(id: string) {
     setBusy(id)
-    const { error } = await supabase.from('materials').update({ approval_status:'approved', reviewed_by:user.id, reviewed_at:new Date().toISOString(), rejection_reason:null }).eq('id', id)
+    let error: Error | null = null
+    try { await reviewFn({ data: { materialId:id, decision:'approved', reason:'' } }) } catch (caught) { error = caught instanceof Error ? caught : new Error('Approval failed') }
     setBusy(null)
     if (error) { toast.error(error.message); return }
     toast.success('Material approved and published'); void load()
@@ -75,7 +100,8 @@ function Materials() {
   async function reject(id: string) {
     if (reason.trim().length < 5) { toast.error('Add a clear rejection reason'); return }
     setBusy(id)
-    const { error } = await supabase.from('materials').update({ approval_status:'rejected', reviewed_by:user.id, reviewed_at:new Date().toISOString(), rejection_reason:reason.trim() }).eq('id', id)
+    let error: Error | null = null
+    try { await reviewFn({ data: { materialId:id, decision:'rejected', reason:reason.trim() } }) } catch (caught) { error = caught instanceof Error ? caught : new Error('Rejection failed') }
     setBusy(null)
     if (error) { toast.error(error.message); return }
     toast.success('Submission rejected'); setRejecting(null); setReason(''); void load()
@@ -104,7 +130,7 @@ function Materials() {
       {!visible.length && <div className="empty-state compact"><Check /><h2>Queue clear</h2><p>No {filter === 'all' ? '' : filter} materials to show.</p></div>}
     </div>
     <section className="admin-publisher"><div className="section-heading"><div><p className="eyebrow">Administrator publishing</p><h2>{edit ? 'Edit material' : 'Add a verified material'}</h2></div>{edit && <Button variant="ghost" onClick={() => { setEdit(null); setForm(blank) }}>Cancel edit</Button>}</div>
-      <form onSubmit={save} className="admin-form"><Input placeholder="Material title" value={form.title} onChange={event => setForm({...form,title:event.target.value})} required minLength={3}/><Input placeholder="Description" value={form.description} onChange={event => setForm({...form,description:event.target.value})} required minLength={20}/><select required value={form.subject_id} onChange={event => setForm({...form,subject_id:event.target.value})}><option value="">Select subject</option>{subjects.map(subject => <option key={subject.id} value={subject.id}>{subject.name}</option>)}</select><select value={form.type} onChange={event => setForm({...form,type:event.target.value as MaterialForm['type']})}><option>PDF</option><option>Video</option><option>Article</option></select><Input type="url" placeholder="Resource URL" value={form.url} onChange={event => setForm({...form,url:event.target.value})} required/><Input placeholder="Tags, comma separated" value={form.tags} onChange={event => setForm({...form,tags:event.target.value})}/><Button><Plus />{edit ? 'Update' : 'Publish'}</Button></form>
+      <form onSubmit={save} className="admin-form"><Input aria-label="Material title" placeholder="Material title" value={form.title} onChange={event => setForm({...form,title:event.target.value})} required minLength={3}/><Input aria-label="Material description" placeholder="Description" value={form.description} onChange={event => setForm({...form,description:event.target.value})} required minLength={20}/><select aria-label="Subject" required value={form.subject_id} onChange={event => setForm({...form,subject_id:event.target.value})}><option value="">Select subject</option>{subjects.map(subject => <option key={subject.id} value={subject.id}>{subject.name}</option>)}</select><select aria-label="Material type" value={form.type} onChange={event => setForm({...form,type:event.target.value as MaterialForm['type']})}><option>PDF</option><option>Video</option><option>Article</option></select><Input aria-label="Resource URL" type="url" placeholder="Resource URL (optional with file)" value={form.url} onChange={event => setForm({...form,url:event.target.value})}/><Input aria-label="Tags" placeholder="Tags, comma separated" value={form.tags} onChange={event => setForm({...form,tags:event.target.value})}/><Input aria-label="Upload file" type="file" accept="application/pdf,video/mp4,video/webm" onChange={event => setFile(event.target.files?.[0] ?? null)}/><Button disabled={busy === 'publish' || busy === edit}><Plus />{edit ? 'Update' : 'Publish'}</Button></form>
     </section><Outlet />
   </div></AdminGuard>
 }
