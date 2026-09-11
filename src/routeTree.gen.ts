@@ -20,6 +20,11 @@ import { Route as AuthenticatedRecommendationsRouteImport } from './routes/_auth
 import { Route as AuthenticatedSearchRouteImport } from './routes/_authenticated/search'
 import { Route as AuthenticatedAdminDashboardRouteImport } from './routes/_authenticated/admin.dashboard'
 import { Route as AuthenticatedAdminMaterialsRouteImport } from './routes/_authenticated/admin.materials'
+import { Route as AuthenticatedAdminReportsRouteImport } from './routes/_authenticated/admin.reports'
+import { Route as AuthenticatedAdminSubjectsRouteImport } from './routes/_authenticated/admin.subjects'
+import { Route as AuthenticatedMaterialsRouteImport } from './routes/_authenticated/materials.'
+import { Route as AuthenticatedAdminMaterialsEditRouteImport } from './routes/_authenticated/admin.materials..edit'
+import { Route as AuthenticatedAdminMaterialsNewRouteImport } from './routes/_authenticated/admin.materials.new'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -78,6 +83,35 @@ const AuthenticatedAdminMaterialsRoute =
     path: '/admin/materials',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminReportsRoute =
+  AuthenticatedAdminReportsRouteImport.update({
+    id: '/admin/reports',
+    path: '/admin/reports',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminSubjectsRoute =
+  AuthenticatedAdminSubjectsRouteImport.update({
+    id: '/admin/subjects',
+    path: '/admin/subjects',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedMaterialsRoute = AuthenticatedMaterialsRouteImport.update({
+  id: '/materials/',
+  path: '/materials/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAdminMaterialsEditRoute =
+  AuthenticatedAdminMaterialsEditRouteImport.update({
+    id: '/edit',
+    path: '/edit',
+    getParentRoute: () => AuthenticatedAdminMaterialsRoute,
+  } as any)
+const AuthenticatedAdminMaterialsNewRoute =
+  AuthenticatedAdminMaterialsNewRouteImport.update({
+    id: '/new',
+    path: '/new',
+    getParentRoute: () => AuthenticatedAdminMaterialsRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -88,8 +122,13 @@ export interface FileRoutesByFullPath {
   '/profile': typeof AuthenticatedProfileRoute
   '/recommendations': typeof AuthenticatedRecommendationsRoute
   '/search': typeof AuthenticatedSearchRoute
+  '/materials/': typeof AuthenticatedMaterialsRoute
   '/admin/dashboard': typeof AuthenticatedAdminDashboardRoute
-  '/admin/materials': typeof AuthenticatedAdminMaterialsRoute
+  '/admin/materials': typeof AuthenticatedAdminMaterialsRouteWithChildren
+  '/admin/reports': typeof AuthenticatedAdminReportsRoute
+  '/admin/subjects': typeof AuthenticatedAdminSubjectsRoute
+  '/admin/materials/edit': typeof AuthenticatedAdminMaterialsEditRoute
+  '/admin/materials/new': typeof AuthenticatedAdminMaterialsNewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -100,8 +139,13 @@ export interface FileRoutesByTo {
   '/profile': typeof AuthenticatedProfileRoute
   '/recommendations': typeof AuthenticatedRecommendationsRoute
   '/search': typeof AuthenticatedSearchRoute
+  '/materials': typeof AuthenticatedMaterialsRoute
   '/admin/dashboard': typeof AuthenticatedAdminDashboardRoute
-  '/admin/materials': typeof AuthenticatedAdminMaterialsRoute
+  '/admin/materials': typeof AuthenticatedAdminMaterialsRouteWithChildren
+  '/admin/reports': typeof AuthenticatedAdminReportsRoute
+  '/admin/subjects': typeof AuthenticatedAdminSubjectsRoute
+  '/admin/materials/edit': typeof AuthenticatedAdminMaterialsEditRoute
+  '/admin/materials/new': typeof AuthenticatedAdminMaterialsNewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -114,8 +158,13 @@ export interface FileRoutesById {
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/recommendations': typeof AuthenticatedRecommendationsRoute
   '/_authenticated/search': typeof AuthenticatedSearchRoute
+  '/_authenticated/materials/': typeof AuthenticatedMaterialsRoute
   '/_authenticated/admin/dashboard': typeof AuthenticatedAdminDashboardRoute
-  '/_authenticated/admin/materials': typeof AuthenticatedAdminMaterialsRoute
+  '/_authenticated/admin/materials': typeof AuthenticatedAdminMaterialsRouteWithChildren
+  '/_authenticated/admin/reports': typeof AuthenticatedAdminReportsRoute
+  '/_authenticated/admin/subjects': typeof AuthenticatedAdminSubjectsRoute
+  '/_authenticated/admin/materials/edit': typeof AuthenticatedAdminMaterialsEditRoute
+  '/_authenticated/admin/materials/new': typeof AuthenticatedAdminMaterialsNewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -128,8 +177,13 @@ export interface FileRouteTypes {
     | '/profile'
     | '/recommendations'
     | '/search'
+    | '/materials/'
     | '/admin/dashboard'
     | '/admin/materials'
+    | '/admin/reports'
+    | '/admin/subjects'
+    | '/admin/materials/edit'
+    | '/admin/materials/new'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -140,8 +194,13 @@ export interface FileRouteTypes {
     | '/profile'
     | '/recommendations'
     | '/search'
+    | '/materials'
     | '/admin/dashboard'
     | '/admin/materials'
+    | '/admin/reports'
+    | '/admin/subjects'
+    | '/admin/materials/edit'
+    | '/admin/materials/new'
   id:
     | '__root__'
     | '/'
@@ -153,8 +212,13 @@ export interface FileRouteTypes {
     | '/_authenticated/profile'
     | '/_authenticated/recommendations'
     | '/_authenticated/search'
+    | '/_authenticated/materials/'
     | '/_authenticated/admin/dashboard'
     | '/_authenticated/admin/materials'
+    | '/_authenticated/admin/reports'
+    | '/_authenticated/admin/subjects'
+    | '/_authenticated/admin/materials/edit'
+    | '/_authenticated/admin/materials/new'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -243,8 +307,59 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminMaterialsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/reports': {
+      id: '/_authenticated/admin/reports'
+      path: '/admin/reports'
+      fullPath: '/admin/reports'
+      preLoaderRoute: typeof AuthenticatedAdminReportsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/subjects': {
+      id: '/_authenticated/admin/subjects'
+      path: '/admin/subjects'
+      fullPath: '/admin/subjects'
+      preLoaderRoute: typeof AuthenticatedAdminSubjectsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/materials/': {
+      id: '/_authenticated/materials/'
+      path: '/materials'
+      fullPath: '/materials/'
+      preLoaderRoute: typeof AuthenticatedMaterialsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/materials/edit': {
+      id: '/_authenticated/admin/materials/edit'
+      path: '/edit'
+      fullPath: '/admin/materials/edit'
+      preLoaderRoute: typeof AuthenticatedAdminMaterialsEditRouteImport
+      parentRoute: typeof AuthenticatedAdminMaterialsRoute
+    }
+    '/_authenticated/admin/materials/new': {
+      id: '/_authenticated/admin/materials/new'
+      path: '/new'
+      fullPath: '/admin/materials/new'
+      preLoaderRoute: typeof AuthenticatedAdminMaterialsNewRouteImport
+      parentRoute: typeof AuthenticatedAdminMaterialsRoute
+    }
   }
 }
+
+interface AuthenticatedAdminMaterialsRouteChildren {
+  AuthenticatedAdminMaterialsEditRoute: typeof AuthenticatedAdminMaterialsEditRoute
+  AuthenticatedAdminMaterialsNewRoute: typeof AuthenticatedAdminMaterialsNewRoute
+}
+
+const AuthenticatedAdminMaterialsRouteChildren: AuthenticatedAdminMaterialsRouteChildren =
+  {
+    AuthenticatedAdminMaterialsEditRoute: AuthenticatedAdminMaterialsEditRoute,
+    AuthenticatedAdminMaterialsNewRoute: AuthenticatedAdminMaterialsNewRoute,
+  }
+
+const AuthenticatedAdminMaterialsRouteWithChildren =
+  AuthenticatedAdminMaterialsRoute._addFileChildren(
+    AuthenticatedAdminMaterialsRouteChildren,
+  )
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
@@ -252,8 +367,11 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedRecommendationsRoute: typeof AuthenticatedRecommendationsRoute
   AuthenticatedSearchRoute: typeof AuthenticatedSearchRoute
+  AuthenticatedMaterialsRoute: typeof AuthenticatedMaterialsRoute
   AuthenticatedAdminDashboardRoute: typeof AuthenticatedAdminDashboardRoute
-  AuthenticatedAdminMaterialsRoute: typeof AuthenticatedAdminMaterialsRoute
+  AuthenticatedAdminMaterialsRoute: typeof AuthenticatedAdminMaterialsRouteWithChildren
+  AuthenticatedAdminReportsRoute: typeof AuthenticatedAdminReportsRoute
+  AuthenticatedAdminSubjectsRoute: typeof AuthenticatedAdminSubjectsRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -262,8 +380,12 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedRecommendationsRoute: AuthenticatedRecommendationsRoute,
   AuthenticatedSearchRoute: AuthenticatedSearchRoute,
+  AuthenticatedMaterialsRoute: AuthenticatedMaterialsRoute,
   AuthenticatedAdminDashboardRoute: AuthenticatedAdminDashboardRoute,
-  AuthenticatedAdminMaterialsRoute: AuthenticatedAdminMaterialsRoute,
+  AuthenticatedAdminMaterialsRoute:
+    AuthenticatedAdminMaterialsRouteWithChildren,
+  AuthenticatedAdminReportsRoute: AuthenticatedAdminReportsRoute,
+  AuthenticatedAdminSubjectsRoute: AuthenticatedAdminSubjectsRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
