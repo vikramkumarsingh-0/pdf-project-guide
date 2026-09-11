@@ -29,6 +29,31 @@ export const submitMaterial = createServerFn({ method: 'POST' })
     return { id: row.id }
   })
 
+export const publishMaterial = createServerFn({ method: 'POST' })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => materialSubmissionSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    await requireAdmin(context)
+    const { data: row, error } = await context.supabase.from('materials').insert({
+      title: data.title,
+      description: data.description,
+      subject_id: data.subjectId,
+      type: data.type,
+      url: data.url,
+      tags: data.tags,
+      uploaded_by: context.userId,
+      approval_status: 'approved',
+      reviewed_by: context.userId,
+      reviewed_at: new Date().toISOString(),
+      file_path: data.filePath ?? null,
+      file_name: data.fileName ?? null,
+      file_mime_type: data.fileMimeType ?? null,
+      file_size_bytes: data.fileSizeBytes ?? null,
+    }).select('id').single()
+    if (error) throw new Error(error.message)
+    return { id: row.id }
+  })
+
 export const reviewMaterial = createServerFn({ method: 'POST' })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => materialReviewSchema.parse(input))
