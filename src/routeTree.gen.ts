@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedEducatorRouteImport } from './routes/_authenticated/educator'
 import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticated/history'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
@@ -55,6 +56,11 @@ const RegisterRoute = RegisterRouteImport.update({
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedEducatorRoute = AuthenticatedEducatorRouteImport.update({
+  id: '/educator',
+  path: '/educator',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedHistoryRoute = AuthenticatedHistoryRouteImport.update({
@@ -138,9 +144,9 @@ const AuthenticatedAdminSubjectsRoute =
   } as any)
 const AuthenticatedEducatorApplyRoute =
   AuthenticatedEducatorApplyRouteImport.update({
-    id: '/educator/apply',
-    path: '/educator/apply',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/apply',
+    path: '/apply',
+    getParentRoute: () => AuthenticatedEducatorRoute,
   } as any)
 const AuthenticatedMaterialsIdRoute =
   AuthenticatedMaterialsIdRouteImport.update({
@@ -166,6 +172,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/educator': typeof AuthenticatedEducatorRouteWithChildren
   '/history': typeof AuthenticatedHistoryRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/profile': typeof AuthenticatedProfileRoute
@@ -190,6 +197,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/educator': typeof AuthenticatedEducatorRouteWithChildren
   '/history': typeof AuthenticatedHistoryRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/profile': typeof AuthenticatedProfileRoute
@@ -216,6 +224,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/educator': typeof AuthenticatedEducatorRouteWithChildren
   '/_authenticated/history': typeof AuthenticatedHistoryRoute
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
@@ -242,6 +251,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/dashboard'
+    | '/educator'
     | '/history'
     | '/onboarding'
     | '/profile'
@@ -266,6 +276,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/dashboard'
+    | '/educator'
     | '/history'
     | '/onboarding'
     | '/profile'
@@ -291,6 +302,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/_authenticated/dashboard'
+    | '/_authenticated/educator'
     | '/_authenticated/history'
     | '/_authenticated/onboarding'
     | '/_authenticated/profile'
@@ -353,6 +365,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/educator': {
+      id: '/_authenticated/educator'
+      path: '/educator'
+      fullPath: '/educator'
+      preLoaderRoute: typeof AuthenticatedEducatorRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/history': {
@@ -455,10 +474,10 @@ declare module '@tanstack/react-router' {
     }
     '/_authenticated/educator/apply': {
       id: '/_authenticated/educator/apply'
-      path: '/educator/apply'
+      path: '/apply'
       fullPath: '/educator/apply'
       preLoaderRoute: typeof AuthenticatedEducatorApplyRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedEducatorRoute
     }
     '/_authenticated/materials/$id': {
       id: '/_authenticated/materials/$id'
@@ -484,6 +503,19 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedEducatorRouteChildren {
+  AuthenticatedEducatorApplyRoute: typeof AuthenticatedEducatorApplyRoute
+}
+
+const AuthenticatedEducatorRouteChildren: AuthenticatedEducatorRouteChildren = {
+  AuthenticatedEducatorApplyRoute: AuthenticatedEducatorApplyRoute,
+}
+
+const AuthenticatedEducatorRouteWithChildren =
+  AuthenticatedEducatorRoute._addFileChildren(
+    AuthenticatedEducatorRouteChildren,
+  )
+
 interface AuthenticatedAdminMaterialsRouteChildren {
   AuthenticatedAdminMaterialsNewRoute: typeof AuthenticatedAdminMaterialsNewRoute
   AuthenticatedAdminMaterialsIdEditRoute: typeof AuthenticatedAdminMaterialsIdEditRoute
@@ -503,6 +535,7 @@ const AuthenticatedAdminMaterialsRouteWithChildren =
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedEducatorRoute: typeof AuthenticatedEducatorRouteWithChildren
   AuthenticatedHistoryRoute: typeof AuthenticatedHistoryRoute
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
@@ -517,12 +550,12 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminMaterialsRoute: typeof AuthenticatedAdminMaterialsRouteWithChildren
   AuthenticatedAdminReportsRoute: typeof AuthenticatedAdminReportsRoute
   AuthenticatedAdminSubjectsRoute: typeof AuthenticatedAdminSubjectsRoute
-  AuthenticatedEducatorApplyRoute: typeof AuthenticatedEducatorApplyRoute
   AuthenticatedMaterialsIdRoute: typeof AuthenticatedMaterialsIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedEducatorRoute: AuthenticatedEducatorRouteWithChildren,
   AuthenticatedHistoryRoute: AuthenticatedHistoryRoute,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
@@ -538,7 +571,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedAdminMaterialsRouteWithChildren,
   AuthenticatedAdminReportsRoute: AuthenticatedAdminReportsRoute,
   AuthenticatedAdminSubjectsRoute: AuthenticatedAdminSubjectsRoute,
-  AuthenticatedEducatorApplyRoute: AuthenticatedEducatorApplyRoute,
   AuthenticatedMaterialsIdRoute: AuthenticatedMaterialsIdRoute,
 }
 
