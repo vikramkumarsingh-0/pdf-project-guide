@@ -1,95 +1,17 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useEffect, useState } from 'react'
+import { useEffect,useState } from 'react'
 import { useServerFn } from '@tanstack/react-start'
-import { BookOpenCheck, MessageSquareText, Plus, UsersRound } from 'lucide-react'
+import { BookOpenCheck,Check,ExternalLink,LibraryBig,MessageSquareText,Plus,UsersRound } from 'lucide-react'
 import { toast } from 'sonner'
-import { createStudyGroup, joinStudyGroup, leaveStudyGroup, listStudyGroups, postStudyGroupNote } from '@/lib/study-groups.functions'
+import { createStudyGroup,joinStudyGroup,leaveStudyGroup,listStudyGroups,postStudyGroupNote,setStudyGroupNoteCompletion,shareStudyGroupResource } from '@/lib/study-groups.functions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-
-export const Route = createFileRoute('/_authenticated/study-groups')({
-  head: () => ({ meta: [
-    { title: 'Study groups | StudyFlow AI' },
-    { name: 'description', content: 'Join subject study groups, share notes, and follow group learning progress.' },
-    { property: 'og:title', content: 'Study groups | StudyFlow AI' },
-    { property: 'og:description', content: 'Learn with peers in subject-focused StudyFlow groups.' },
-    { property: 'og:type', content: 'website' },
-    { name: 'twitter:card', content: 'summary_large_image' },
-  ] }),
-  component: StudyGroups,
-})
-
-type Group = {
-  id: string
-  name: string
-  description: string
-  subject_id: string
-  subjects: { name: string } | null
-  joined: boolean
-  progress: { memberCount?: number; noteCount?: number; viewCount?: number; ratingCount?: number } | null
-  notes: Array<{ id: string; content: string; created_at: string }>
-}
-
-function StudyGroups() {
-  const list = useServerFn(listStudyGroups)
-  const create = useServerFn(createStudyGroup)
-  const join = useServerFn(joinStudyGroup)
-  const leave = useServerFn(leaveStudyGroup)
-  const postNote = useServerFn(postStudyGroupNote)
-  const [groups, setGroups] = useState<Group[]>([])
-  const [enrolled, setEnrolled] = useState<string[]>([])
-  const [enrolledSubjects, setEnrolledSubjects] = useState<Array<{subject_id:string;subjects:{name:string}|null}>>([])
-  const [form, setForm] = useState({ name: '', description: '', subjectId: '' })
-  const [notes, setNotes] = useState<Record<string, string>>({})
-  const [busy, setBusy] = useState(false)
-
-  async function load() {
-    try {
-      const result = await list()
-      setGroups(result.groups as Group[])
-      setEnrolledSubjects(result.enrolledSubjects as Array<{subject_id:string;subjects:{name:string}|null}>)
-      const subjectIds = result.enrolledSubjects.map((row) => row.subject_id)
-      setEnrolled(subjectIds)
-      setForm((current) => ({ ...current, subjectId: current.subjectId || subjectIds[0] || '' }))
-    } catch (error) { toast.error(error instanceof Error ? error.message : 'Could not load study groups') }
-  }
-  useEffect(() => { void load() }, [])
-
-  async function createGroup(event: React.FormEvent) {
-    event.preventDefault(); setBusy(true)
-    try { await create({ data: form }); setForm({ name: '', description: '', subjectId: enrolled[0] || '' }); toast.success('Study group created'); await load() }
-    catch (error) { toast.error(error instanceof Error ? error.message : 'Could not create group') }
-    finally { setBusy(false) }
-  }
-
-  async function toggle(group: Group) {
-    try { if (group.joined) await leave({ data: { groupId: group.id } }); else await join({ data: { groupId: group.id } }); toast.success(group.joined ? 'Left study group' : 'Joined study group'); await load() }
-    catch (error) { toast.error(error instanceof Error ? error.message : 'Could not update membership') }
-  }
-
-  async function share(groupId: string) {
-    const content = notes[groupId]?.trim() || ''
-    if (content.length < 2) { toast.error('Add a note before sharing'); return }
-    try { await postNote({ data: { groupId, content } }); setNotes((current) => ({ ...current, [groupId]: '' })); toast.success('Note shared'); await load() }
-    catch (error) { toast.error(error instanceof Error ? error.message : 'Could not share note') }
-  }
-
-  return <div className="page-wrap">
-    <div className="page-title flex-row"><div><p className="eyebrow"><UsersRound /> Collaborative learning</p><h1>Study groups</h1><p>Join classmates by subject, exchange notes, and build momentum together.</p></div></div>
-    <div className="groups-layout">
-      <section className="groups-list" aria-label="Available study groups">
-        {groups.map((group) => <article className="group-panel" key={group.id}>
-          <div className="group-heading"><div><p className="eyebrow">{group.subjects?.name}</p><h2>{group.name}</h2><p>{group.description}</p></div><Button variant={group.joined ? 'outline' : 'default'} onClick={() => void toggle(group)}>{group.joined ? 'Leave group' : 'Join group'}</Button></div>
-          {group.joined && <><div className="group-progress">{[
-            ['Members', group.progress?.memberCount ?? 0], ['Shared notes', group.progress?.noteCount ?? 0], ['Subject views', group.progress?.viewCount ?? 0], ['Subject ratings', group.progress?.ratingCount ?? 0],
-          ].map(([label, value]) => <div key={label}><b>{value}</b><span>{label}</span></div>)}</div>
-          <div className="group-notes"><div className="group-note-compose"><Textarea aria-label={`Share a note in ${group.name}`} placeholder="Share a useful summary, question, or study tip…" value={notes[group.id] ?? ''} onChange={(event) => setNotes((current) => ({ ...current, [group.id]: event.target.value }))} maxLength={2000}/><Button onClick={() => void share(group.id)}><MessageSquareText />Share note</Button></div>{group.notes.map((note) => <div className="shared-note" key={note.id}><p>{note.content}</p><time>{new Date(note.created_at).toLocaleString()}</time></div>)}{!group.notes.length && <p className="muted-copy">No shared notes yet.</p>}</div></>}
-        </article>)}
-        {!groups.length && <div className="empty-state compact"><UsersRound /><h2>No groups yet</h2><p>Create the first group for one of your subjects.</p></div>}
-      </section>
-      <aside className="create-group"><BookOpenCheck /><h2>Start a group</h2><p>Create a focused space for one of your enrolled subjects.</p><form onSubmit={createGroup}><div><Label htmlFor="group-name">Group name</Label><Input id="group-name" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} required minLength={3}/></div><div><Label htmlFor="group-subject">Subject</Label><select id="group-subject" value={form.subjectId} onChange={(event) => setForm({ ...form, subjectId: event.target.value })} required>{enrolledSubjects.map((subject) => <option key={subject.subject_id} value={subject.subject_id}>{subject.subjects?.name}</option>)}</select></div><div><Label htmlFor="group-description">Purpose</Label><Textarea id="group-description" value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} maxLength={600}/></div><Button disabled={busy || !enrolled.length}><Plus />Create group</Button></form></aside>
-    </div>
-  </div>
-}
+export const Route=createFileRoute('/_authenticated/study-groups')({head:()=>({meta:[{title:'Study groups | StudyFlow AI'},{name:'description',content:'Join subject study groups, share resources, complete notes, and follow progress.'},{property:'og:title',content:'Study groups | StudyFlow AI'},{property:'og:description',content:'Learn with peers in subject-focused StudyFlow groups.'},{property:'og:type',content:'website'},{name:'twitter:card',content:'summary_large_image'}]}),component:StudyGroups})
+type Note={id:string;content:string;created_at:string;completed:boolean}
+type Resource={material_id:string;materials:{id:string;title:string;type:string;url:string}|null}
+type Member={user_id:string;member_name:string;notes_shared:number;notes_completed:number;resources_shared:number;subject_views:number;subject_ratings:number}
+type Group={id:string;name:string;description:string;subject_id:string;created_by:string;subjects:{name:string}|null;joined:boolean;progress:{memberCount?:number;noteCount?:number;completedNoteCount?:number;resourceCount?:number;viewCount?:number;ratingCount?:number}|null;notes:Note[];resources:Resource[];availableMaterials:Array<{id:string;title:string;type:string}>;memberActivity:Member[]}
+type EnrolledSubject={subject_id:string;subjects:{name:string}|null}
+function StudyGroups(){const list=useServerFn(listStudyGroups);const create=useServerFn(createStudyGroup);const join=useServerFn(joinStudyGroup);const leave=useServerFn(leaveStudyGroup);const postNote=useServerFn(postStudyGroupNote);const complete=useServerFn(setStudyGroupNoteCompletion);const shareResource=useServerFn(shareStudyGroupResource);const[groups,setGroups]=useState<Group[]>([]);const[enrolledSubjects,setEnrolledSubjects]=useState<EnrolledSubject[]>([]);const[form,setForm]=useState({name:'',description:'',subjectId:''});const[notes,setNotes]=useState<Record<string,string>>({});const[resourceChoice,setResourceChoice]=useState<Record<string,string>>({});const[busy,setBusy]=useState(false);async function load(){try{const result=await list();const subjects=result.enrolledSubjects as EnrolledSubject[];setGroups(result.groups as Group[]);setEnrolledSubjects(subjects);setForm(current=>({...current,subjectId:current.subjectId||subjects[0]?.subject_id||''}))}catch(error){toast.error(error instanceof Error?error.message:'Could not load study groups')}}useEffect(()=>{void load()},[]);async function createGroup(e:React.FormEvent){e.preventDefault();setBusy(true);try{await create({data:form});setForm({name:'',description:'',subjectId:enrolledSubjects[0]?.subject_id??''});toast.success('Study group created');await load()}catch(error){toast.error(error instanceof Error?error.message:'Could not create group')}finally{setBusy(false)}}async function toggle(group:Group){try{group.joined?await leave({data:{groupId:group.id}}):await join({data:{groupId:group.id}});toast.success(group.joined?'Left study group':'Joined study group');await load()}catch(error){toast.error(error instanceof Error?error.message:'Could not update membership')}}async function shareNote(groupId:string){const content=notes[groupId]?.trim()??'';if(content.length<2){toast.error('Add a note before sharing');return}try{await postNote({data:{groupId,content}});setNotes(current=>({...current,[groupId]:''}));toast.success('Note shared');await load()}catch(error){toast.error(error instanceof Error?error.message:'Could not share note')}}async function toggleComplete(note:Note){try{await complete({data:{noteId:note.id,completed:!note.completed}});await load()}catch(error){toast.error(error instanceof Error?error.message:'Could not update note')}}async function addResource(group:Group){const materialId=resourceChoice[group.id]||group.availableMaterials[0]?.id;if(!materialId){toast.error('No approved resource is available for this subject');return}try{await shareResource({data:{groupId:group.id,materialId}});toast.success('Resource shared with the group');await load()}catch(error){toast.error(error instanceof Error?error.message:'Could not share resource')}}return <div className="page-wrap"><div className="page-title flex-row"><div><p className="eyebrow"><UsersRound/> Collaborative learning</p><h1>Study groups</h1><p>Share subject resources, complete peer notes, and build progress together.</p></div></div><div className="groups-layout"><section className="groups-list" aria-label="Available study groups">{groups.map(group=><article className="group-panel" key={group.id}><div className="group-heading"><div><p className="eyebrow">{group.subjects?.name}</p><h2>{group.name}</h2><p>{group.description}</p></div><Button variant={group.joined?'outline':'default'} onClick={()=>void toggle(group)}>{group.joined?'Leave group':'Join group'}</Button></div>{group.joined&&<><div className="group-progress">{[['Members',group.progress?.memberCount??0],['Notes',group.progress?.noteCount??0],['Completed',group.progress?.completedNoteCount??0],['Resources',group.progress?.resourceCount??0],['Views',group.progress?.viewCount??0],['Ratings',group.progress?.ratingCount??0]].map(([label,value])=><div key={label}><b>{value}</b><span>{label}</span></div>)}</div><div className="group-resources"><div className="section-heading"><div><p className="eyebrow"><LibraryBig/> Group library</p><h3>Shared resources</h3></div></div><div className="resource-compose"><select aria-label={`Resource for ${group.name}`} value={resourceChoice[group.id]??group.availableMaterials[0]?.id??''} onChange={e=>setResourceChoice({...resourceChoice,[group.id]:e.target.value})}>{group.availableMaterials.map(item=><option key={item.id} value={item.id}>{item.title}</option>)}</select><Button variant="outline" onClick={()=>void addResource(group)}>Share</Button></div><div className="resource-list">{group.resources.map(resource=><a key={resource.material_id} href={resource.materials?.url||'#'} target="_blank" rel="noreferrer"><span>{resource.materials?.title}</span><ExternalLink/></a>)}{!group.resources.length&&<p className="muted-copy">No shared resources yet.</p>}</div></div><div className="group-notes"><div className="group-note-compose"><Textarea aria-label={`Share a note in ${group.name}`} placeholder="Share a useful summary, question, or study tip…" value={notes[group.id]??''} onChange={e=>setNotes({...notes,[group.id]:e.target.value})}/><Button onClick={()=>void shareNote(group.id)}><MessageSquareText/>Share note</Button></div>{group.notes.map(note=><div className="shared-note" key={note.id}><div><p>{note.content}</p><time>{new Date(note.created_at).toLocaleString()}</time></div><Button className="note-complete" data-complete={note.completed} variant="ghost" size="icon" aria-label={note.completed?'Mark note incomplete':'Mark note complete'} onClick={()=>void toggleComplete(note)}><Check/></Button></div>)}{!group.notes.length&&<p className="muted-copy">No shared notes yet.</p>}</div>{group.memberActivity.length>0&&<div className="member-progress"><p className="eyebrow"><UsersRound/> Group owner view</p><h3>Member activity</h3><div className="member-list">{group.memberActivity.map(member=><div key={member.user_id}><strong>{member.member_name}</strong><span>{member.notes_shared} notes · {member.notes_completed} completed · {member.resources_shared} resources · {member.subject_views} views · {member.subject_ratings} ratings</span></div>)}</div></div>}</>}</article>)}{!groups.length&&<div className="empty-state compact"><UsersRound/><h2>No groups yet</h2><p>Create the first group for one of your subjects.</p></div>}</section><aside className="create-group"><BookOpenCheck/><h2>Start a group</h2><p>Create a focused space for one of your enrolled subjects.</p><form onSubmit={createGroup}><div><Label htmlFor="group-name">Group name</Label><Input id="group-name" value={form.name} onChange={e=>setForm({...form,name:e.target.value})} required minLength={3}/></div><div><Label htmlFor="group-subject">Subject</Label><select id="group-subject" value={form.subjectId} onChange={e=>setForm({...form,subjectId:e.target.value})} required>{enrolledSubjects.map(subject=><option key={subject.subject_id} value={subject.subject_id}>{subject.subjects?.name}</option>)}</select></div><div><Label htmlFor="group-description">Purpose</Label><Textarea id="group-description" value={form.description} onChange={e=>setForm({...form,description:e.target.value})}/></div><Button disabled={busy||!enrolledSubjects.length}><Plus/>Create group</Button></form></aside></div></div>}
