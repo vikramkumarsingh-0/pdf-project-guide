@@ -1,1 +1,1 @@
-import { createFileRoute,redirect } from '@tanstack/react-router';export const Route=createFileRoute('/_authenticated/admin/materials/edit')({beforeLoad:()=>{throw redirect({to:'/admin/materials'})}});
+import { createFileRoute,redirect } from '@tanstack/react-router';export const Route=createFileRoute('/_authenticated/admin/materials/$id/edit')({beforeLoad:()=>{throw redirect({to:'/admin/materials'})}});
