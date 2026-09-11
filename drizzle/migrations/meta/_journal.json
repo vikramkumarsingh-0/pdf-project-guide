@@ -43,6 +43,20 @@
       "when": 1789106990916,
       "tag": "0005_add_study_groups_and_material_feedback",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1789108840892,
+      "tag": "0006_add_teacher_role",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1789108877438,
+      "tag": "0007_add_educator_portal_and_group_progress",
+      "breakpoints": true
     }
   ]
 }

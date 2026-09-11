@@ -14,6 +14,94 @@ export type Database = {
   }
   public: {
     Tables: {
+      educator_access_requests: {
+        Row: {
+          affiliation: string
+          author_id: string | null
+          created_at: string
+          decision_note: string | null
+          expertise: string[]
+          id: string
+          requested_name: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          statement: string
+          status: Database["public"]["Enums"]["educator_access_status"]
+          updated_at: string
+          user_id: string
+          website_url: string | null
+        }
+        Insert: {
+          affiliation?: string
+          author_id?: string | null
+          created_at?: string
+          decision_note?: string | null
+          expertise?: string[]
+          id?: string
+          requested_name: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          statement?: string
+          status?: Database["public"]["Enums"]["educator_access_status"]
+          updated_at?: string
+          user_id: string
+          website_url?: string | null
+        }
+        Update: {
+          affiliation?: string
+          author_id?: string | null
+          created_at?: string
+          decision_note?: string | null
+          expertise?: string[]
+          id?: string
+          requested_name?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          statement?: string
+          status?: Database["public"]["Enums"]["educator_access_status"]
+          updated_at?: string
+          user_id?: string
+          website_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "educator_access_requests_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "material_authors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      educator_accounts: {
+        Row: {
+          author_id: string
+          linked_at: string
+          linked_by: string
+          user_id: string
+        }
+        Insert: {
+          author_id: string
+          linked_at?: string
+          linked_by: string
+          user_id: string
+        }
+        Update: {
+          author_id?: string
+          linked_at?: string
+          linked_by?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "educator_accounts_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: true
+            referencedRelation: "material_authors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       enrollments: {
         Row: {
           created_at: string
@@ -400,6 +488,32 @@ export type Database = {
           },
         ]
       }
+      study_group_note_completions: {
+        Row: {
+          completed_at: string
+          note_id: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string
+          note_id: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string
+          note_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "study_group_note_completions_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "study_group_notes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       study_group_notes: {
         Row: {
           author_id: string
@@ -431,6 +545,45 @@ export type Database = {
             columns: ["group_id"]
             isOneToOne: false
             referencedRelation: "study_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      study_group_resources: {
+        Row: {
+          group_id: string
+          id: string
+          material_id: string
+          shared_at: string
+          shared_by: string
+        }
+        Insert: {
+          group_id: string
+          id?: string
+          material_id: string
+          shared_at?: string
+          shared_by: string
+        }
+        Update: {
+          group_id?: string
+          id?: string
+          material_id?: string
+          shared_at?: string
+          shared_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "study_group_resources_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "study_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "study_group_resources_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
             referencedColumns: ["id"]
           },
         ]
@@ -523,7 +676,23 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_study_group_member_activity: {
+        Args: { _group_id: string }
+        Returns: {
+          member_name: string
+          notes_completed: number
+          notes_shared: number
+          resources_shared: number
+          subject_ratings: number
+          subject_views: number
+          user_id: string
+        }[]
+      }
       get_study_group_progress: { Args: { _group_id: string }; Returns: Json }
+      has_educator_author: {
+        Args: { _author_id: string; _user_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -537,7 +706,8 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "student"
+      app_role: "admin" | "student" | "teacher"
+      educator_access_status: "pending" | "approved" | "rejected" | "invited"
       feedback_status: "open" | "resolved"
       feedback_type: "question" | "comment"
       material_approval_status: "pending" | "approved" | "rejected"
@@ -669,7 +839,8 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "student"],
+      app_role: ["admin", "student", "teacher"],
+      educator_access_status: ["pending", "approved", "rejected", "invited"],
       feedback_status: ["open", "resolved"],
       feedback_type: ["question", "comment"],
       material_approval_status: ["pending", "approved", "rejected"],
