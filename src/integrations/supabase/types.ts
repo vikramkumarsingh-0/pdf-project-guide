@@ -75,6 +75,10 @@ export type Database = {
           average_rating: number
           created_at: string
           description: string
+          file_mime_type: string | null
+          file_name: string | null
+          file_path: string | null
+          file_size_bytes: number | null
           id: string
           rating_count: number
           rejection_reason: string | null
@@ -95,6 +99,10 @@ export type Database = {
           average_rating?: number
           created_at?: string
           description: string
+          file_mime_type?: string | null
+          file_name?: string | null
+          file_path?: string | null
+          file_size_bytes?: number | null
           id?: string
           rating_count?: number
           rejection_reason?: string | null
@@ -115,6 +123,10 @@ export type Database = {
           average_rating?: number
           created_at?: string
           description?: string
+          file_mime_type?: string | null
+          file_name?: string | null
+          file_path?: string | null
+          file_size_bytes?: number | null
           id?: string
           rating_count?: number
           rejection_reason?: string | null

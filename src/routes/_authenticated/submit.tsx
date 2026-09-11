@@ -1,12 +1,16 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { useEffect, useState } from 'react'
-import { CheckCircle2, Clock3, Send, XCircle } from 'lucide-react'
+import { createFileRoute, Link } from '@tanstack/react-router'
+import { useState } from 'react'
+import { FileClock, Send, Upload } from 'lucide-react'
+import { useServerFn } from '@tanstack/react-start'
 import { toast } from 'sonner'
 import { supabase } from '@/integrations/supabase/client'
-import type { MaterialDoc } from '@/lib/recommendation'
+import { useEffect } from 'react'
 import type { Subject } from '@/lib/catalog'
+import { materialSubmissionSchema } from '@/lib/material-schemas'
+import { submitMaterial } from '@/lib/materials.functions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 
 export const Route = createFileRoute('/_authenticated/submit')({
@@ -22,62 +26,60 @@ export const Route = createFileRoute('/_authenticated/submit')({
 })
 
 type MaterialType = 'PDF' | 'Video' | 'Article'
-const initialForm = { title: '', description: '', subject_id: '', type: 'Article' as MaterialType, url: '', tags: '' }
+const initialForm = { title: '', description: '', subjectId: '', type: 'Article' as MaterialType, url: '', tags: '' }
 
 function SubmitMaterial() {
   const { user } = Route.useRouteContext()
+  const submitFn = useServerFn(submitMaterial)
   const [subjects, setSubjects] = useState<Subject[]>([])
-  const [submissions, setSubmissions] = useState<MaterialDoc[]>([])
   const [form, setForm] = useState(initialForm)
+  const [file, setFile] = useState<File | null>(null)
   const [saving, setSaving] = useState(false)
-
-  async function load() {
-    const [subjectResult, submissionResult] = await Promise.all([
-      supabase.from('subjects').select('*').order('name'),
-      supabase.from('materials').select('*,subjects(name)').eq('uploaded_by', user.id).order('submitted_at', { ascending: false }),
-    ])
-    setSubjects((subjectResult.data ?? []) as Subject[])
-    setSubmissions((submissionResult.data ?? []) as MaterialDoc[])
-  }
-
-  useEffect(() => { void load() }, [user.id])
+  useEffect(() => { void supabase.from('subjects').select('*').order('name').then(({ data }) => setSubjects((data ?? []) as Subject[])) }, [])
 
   async function submit(event: React.FormEvent) {
     event.preventDefault()
     setSaving(true)
-    const { error } = await supabase.from('materials').insert({
-      title: form.title.trim(), description: form.description.trim(), subject_id: form.subject_id,
-      type: form.type, url: form.url.trim(), tags: form.tags.split(',').map(tag => tag.trim()).filter(Boolean),
-      uploaded_by: user.id, approval_status: 'pending',
-    })
-    setSaving(false)
-    if (error) { toast.error(error.message); return }
-    toast.success('Resource submitted for review')
-    setForm(initialForm)
-    void load()
+    let filePath: string | null = null
+    try {
+      if (file) {
+        if (!['application/pdf', 'video/mp4', 'video/webm'].includes(file.type) || file.size > 15 * 1024 * 1024) throw new Error('Upload a PDF, MP4, or WebM file up to 15 MB')
+        filePath = `${user.id}/${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '-')}`
+        const upload = await supabase.storage.from('study-materials').upload(filePath, file, { contentType: file.type })
+        if (upload.error) throw upload.error
+      }
+      const payload = materialSubmissionSchema.parse({
+        title: form.title,
+        description: form.description,
+        subjectId: form.subjectId,
+        type: form.type,
+        url: form.url,
+        tags: form.tags.split(',').map((tag) => tag.trim()).filter(Boolean),
+        filePath,
+        fileName: file?.name ?? null,
+        fileMimeType: file?.type ?? null,
+        fileSizeBytes: file?.size ?? null,
+      })
+      await submitFn({ data: payload })
+      toast.success('Resource submitted for review')
+      setForm(initialForm)
+      setFile(null)
+    } catch (error) {
+      if (filePath) await supabase.storage.from('study-materials').remove([filePath])
+      toast.error(error instanceof Error ? error.message : 'Could not submit this resource')
+    } finally { setSaving(false) }
   }
 
-  return <div className="page-wrap">
-    <div className="page-title"><p className="eyebrow"><Send /> Community contribution</p><h1>Submit a study resource</h1><p>An administrator will validate the link and details before it appears in the catalog.</p></div>
-    <div className="submission-layout">
-      <form className="submission-form" onSubmit={submit}>
-        <Input aria-label="Resource title" placeholder="Resource title" value={form.title} onChange={event => setForm({ ...form, title: event.target.value })} required minLength={3} maxLength={160} />
-        <Textarea aria-label="Description" placeholder="Describe what this resource teaches and who it helps" value={form.description} onChange={event => setForm({ ...form, description: event.target.value })} required minLength={20} maxLength={1200} />
-        <div className="submission-fields">
-          <select aria-label="Subject" required value={form.subject_id} onChange={event => setForm({ ...form, subject_id: event.target.value })}><option value="">Select subject</option>{subjects.map(subject => <option key={subject.id} value={subject.id}>{subject.name}</option>)}</select>
-          <select aria-label="Resource type" value={form.type} onChange={event => setForm({ ...form, type: event.target.value as MaterialType })}><option>PDF</option><option>Video</option><option>Article</option></select>
-        </div>
-        <Input aria-label="Resource URL" type="url" placeholder="https://example.com/resource" value={form.url} onChange={event => setForm({ ...form, url: event.target.value })} required />
-        <Input aria-label="Tags" placeholder="Tags, comma separated" value={form.tags} onChange={event => setForm({ ...form, tags: event.target.value })} />
-        <Button disabled={saving}><Send />{saving ? 'Submitting…' : 'Submit for review'}</Button>
-      </form>
-      <section className="submission-history" aria-labelledby="submission-history-title">
-        <div className="section-heading"><div><p className="eyebrow">Review status</p><h2 id="submission-history-title">Your submissions</h2></div></div>
-        {submissions.length ? submissions.map(item => <article key={item.id}>
-          <div className={`status-icon status-${item.approval_status}`} aria-hidden="true">{item.approval_status === 'approved' ? <CheckCircle2 /> : item.approval_status === 'rejected' ? <XCircle /> : <Clock3 />}</div>
-          <div><div className="submission-title-row"><h3>{item.title}</h3><span className={`status-badge status-${item.approval_status}`}>{item.approval_status}</span></div><p>{item.subjects?.name} · {item.type}</p>{item.rejection_reason && <p className="rejection-note">Reason: {item.rejection_reason}</p>}</div>
-        </article>) : <div className="empty-state compact"><Send /><h2>No submissions yet</h2><p>Your submitted resources will appear here.</p></div>}
-      </section>
-    </div>
+  return <div className="page-wrap narrow">
+    <div className="page-title flex-row"><div><p className="eyebrow"><Send /> Community contribution</p><h1>Submit a study resource</h1><p>An administrator validates every resource before it appears in the catalog.</p></div><Link to="/submissions"><Button variant="outline"><FileClock />View history</Button></Link></div>
+    <form className="submission-form submission-form-wide" onSubmit={submit}>
+      <div><Label htmlFor="resource-title">Title</Label><Input id="resource-title" value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} required minLength={3} maxLength={160} /></div>
+      <div><Label htmlFor="resource-description">Description</Label><Textarea id="resource-description" value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} required minLength={20} maxLength={1200} /></div>
+      <div className="submission-fields"><div><Label htmlFor="resource-subject">Subject</Label><select id="resource-subject" required value={form.subjectId} onChange={(event) => setForm({ ...form, subjectId: event.target.value })}><option value="">Select subject</option>{subjects.map((subject) => <option key={subject.id} value={subject.id}>{subject.name}</option>)}</select></div><div><Label htmlFor="resource-type">Type</Label><select id="resource-type" value={form.type} onChange={(event) => setForm({ ...form, type: event.target.value as MaterialType })}><option>PDF</option><option>Video</option><option>Article</option></select></div></div>
+      <div><Label htmlFor="resource-tags">Tags</Label><Input id="resource-tags" placeholder="algorithms, recursion, exam prep" value={form.tags} onChange={(event) => setForm({ ...form, tags: event.target.value })} /></div>
+      <div><Label htmlFor="resource-url">Resource link</Label><Input id="resource-url" type="url" placeholder="https://example.edu/resource" value={form.url} onChange={(event) => setForm({ ...form, url: event.target.value })} /></div>
+      <div className="file-drop"><Upload /><div><Label htmlFor="resource-file">Or upload a file</Label><p>PDF, MP4, or WebM up to 15 MB</p></div><Input id="resource-file" type="file" accept="application/pdf,video/mp4,video/webm" onChange={(event) => setFile(event.target.files?.[0] ?? null)} /></div>
+      <Button size="lg" disabled={saving}><Send />{saving ? 'Submitting…' : 'Submit for review'}</Button>
+    </form>
   </div>
 }
