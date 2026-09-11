@@ -64,6 +64,13 @@
       "when": 1789114420863,
       "tag": "0008_add_material_edit_requests",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1789114999106,
+      "tag": "0009_educator_can_view_shares_of_own_materials",
+      "breakpoints": true
     }
   ]
 }
