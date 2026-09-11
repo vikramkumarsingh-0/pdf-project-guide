@@ -15,8 +15,8 @@
 - [x] Add admin material preview before review decisions.
 - [x] Submit, approve, and verify a real material in the student catalog.
 - [x] Add educator author profiles and link materials.
-- [ ] Expand realistic educator seeds and link approved materials for trustworthy review context.
+- [x] Expand realistic educator seeds and link approved materials for trustworthy review context.
 - [ ] Configure managed sender domain and send submission/decision alerts end to end.
-- [ ] Add subject-based study groups, shared notes, and group progress.
-- [ ] Add student material questions/comments and admin feedback reporting.
-- [ ] Seed realistic student auth accounts and verify onboarding, recommendations, searches, and ratings persist.
+- [x] Add subject-based study groups, shared notes, and group progress.
+- [x] Add student material questions/comments and admin feedback reporting.
+- [x] Seed realistic student auth accounts and verify onboarding, recommendations, searches, and ratings persist.
