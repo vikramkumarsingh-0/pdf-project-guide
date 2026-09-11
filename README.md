@@ -1,29 +1,45 @@
-# Welcome to your Lovable project
+# StudyFlow AI
 
-This project was built with [Lovable](https://lovable.dev).
+A full-stack study material recommender for computing students. It combines a curated academic catalog with explainable content ranking, learning history, ratings, reviews, subject preferences, and administrator analytics.
 
-## Build with Lovable
+## Features
 
-Open your project in the [Lovable editor](https://lovable.dev) and keep building.
+### Students
+- Email/password and Google sign-in
+- Personalized dashboard and cold-start recommendations
+- Search by keyword, subject, and material format
+- Explainable hybrid recommendation scores
+- Material details, external resource opening, ratings, and reviews
+- Learning history and editable subject enrollment
 
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: connect the project to GitHub and every change made in Lovable is committed straight to your repository.
-- **Full ownership**: this code is yours. Push to your repository and your changes sync back into Lovable, ready for your next prompt.
+### Administrators
+- Role-protected administration area
+- Catalog and subject management
+- Live catalog metrics and rating reports
+- CSV report export
 
-## Development
+## Recommendation approach
 
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+The ranking engine tokenizes titles, descriptions, tags, subjects, and learner-interest text. Cosine similarity supplies the content signal, combined with peer popularity, enrolled-subject fit, and rating quality using these weights:
+
+- Content relevance: 50%
+- Peer signals: 25%
+- Subject fit: 15%
+- Quality: 10%
+
+Each result includes a plain-language reason. New learners receive quality- and popularity-based results until their own signals are available.
+
+## Data and security
+
+The Lovable Cloud database contains profiles, separate role assignments, subjects, enrollments, materials, ratings, searches, views, and recommendations. Row-level access rules restrict private activity to its owner and all administrator writes require a verified administrator role. Public catalog reads expose only learning-resource data.
+
+The starter dataset contains 8 subjects and 48 learning materials.
+
+## Local development
 
 ```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
+npm install
 npm run dev
 ```
 
-## Built with
-
-- TanStack Start
-- TypeScript
-- React
-- Tailwind CSS
+The application expects the Lovable Cloud environment variables supplied by the project environment.
