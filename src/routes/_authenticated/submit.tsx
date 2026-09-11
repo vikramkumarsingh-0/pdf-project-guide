@@ -26,16 +26,17 @@ export const Route = createFileRoute('/_authenticated/submit')({
 })
 
 type MaterialType = 'PDF' | 'Video' | 'Article'
-const initialForm = { title: '', description: '', subjectId: '', type: 'Article' as MaterialType, url: '', tags: '' }
+const initialForm = { title: '', description: '', subjectId: '', authorId: '', type: 'Article' as MaterialType, url: '', tags: '' }
 
 function SubmitMaterial() {
   const { user } = Route.useRouteContext()
   const submitFn = useServerFn(submitMaterial)
   const [subjects, setSubjects] = useState<Subject[]>([])
+  const [authors, setAuthors] = useState<Array<{id:string;name:string;affiliation:string}>>([])
   const [form, setForm] = useState(initialForm)
   const [file, setFile] = useState<File | null>(null)
   const [saving, setSaving] = useState(false)
-  useEffect(() => { void supabase.from('subjects').select('*').order('name').then(({ data }) => setSubjects((data ?? []) as Subject[])) }, [])
+  useEffect(() => { void Promise.all([supabase.from('subjects').select('*').order('name'), supabase.from('material_authors').select('id,name,affiliation').order('name')]).then(([subjectResult, authorResult]) => { setSubjects((subjectResult.data ?? []) as Subject[]); setAuthors(authorResult.data ?? []) }) }, [])
 
   async function submit(event: React.FormEvent) {
     event.preventDefault()
@@ -55,6 +56,7 @@ function SubmitMaterial() {
         type: form.type,
         url: form.url,
         tags: form.tags.split(',').map((tag) => tag.trim()).filter(Boolean),
+        authorId: form.authorId || null,
         filePath,
         fileName: file?.name ?? null,
         fileMimeType: file?.type ?? null,
@@ -75,7 +77,7 @@ function SubmitMaterial() {
     <form className="submission-form submission-form-wide" onSubmit={submit}>
       <div><Label htmlFor="resource-title">Title</Label><Input id="resource-title" value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} required minLength={3} maxLength={160} /></div>
       <div><Label htmlFor="resource-description">Description</Label><Textarea id="resource-description" value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} required minLength={20} maxLength={1200} /></div>
-      <div className="submission-fields"><div><Label htmlFor="resource-subject">Subject</Label><select id="resource-subject" required value={form.subjectId} onChange={(event) => setForm({ ...form, subjectId: event.target.value })}><option value="">Select subject</option>{subjects.map((subject) => <option key={subject.id} value={subject.id}>{subject.name}</option>)}</select></div><div><Label htmlFor="resource-type">Type</Label><select id="resource-type" value={form.type} onChange={(event) => setForm({ ...form, type: event.target.value as MaterialType })}><option>PDF</option><option>Video</option><option>Article</option></select></div></div>
+      <div className="submission-fields"><div><Label htmlFor="resource-subject">Subject</Label><select id="resource-subject" required value={form.subjectId} onChange={(event) => setForm({ ...form, subjectId: event.target.value })}><option value="">Select subject</option>{subjects.map((subject) => <option key={subject.id} value={subject.id}>{subject.name}</option>)}</select></div><div><Label htmlFor="resource-author">Educator / author</Label><select id="resource-author" value={form.authorId} onChange={(event) => setForm({ ...form, authorId: event.target.value })}><option value="">Unknown or not listed</option>{authors.map(author => <option key={author.id} value={author.id}>{author.name} — {author.affiliation}</option>)}</select></div><div><Label htmlFor="resource-type">Type</Label><select id="resource-type" value={form.type} onChange={(event) => setForm({ ...form, type: event.target.value as MaterialType })}><option>PDF</option><option>Video</option><option>Article</option></select></div></div>
       <div><Label htmlFor="resource-tags">Tags</Label><Input id="resource-tags" placeholder="algorithms, recursion, exam prep" value={form.tags} onChange={(event) => setForm({ ...form, tags: event.target.value })} /></div>
       <div><Label htmlFor="resource-url">Resource link</Label><Input id="resource-url" type="url" placeholder="https://example.edu/resource" value={form.url} onChange={(event) => setForm({ ...form, url: event.target.value })} /></div>
       <div className="file-drop"><Upload /><div><Label htmlFor="resource-file">Or upload a file</Label><p>PDF, MP4, or WebM up to 15 MB</p></div><Input id="resource-file" type="file" accept="application/pdf,video/mp4,video/webm" onChange={(event) => setFile(event.target.files?.[0] ?? null)} /></div>

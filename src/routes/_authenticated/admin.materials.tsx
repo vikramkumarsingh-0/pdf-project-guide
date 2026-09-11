@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet } from '@tanstack/react-router'
 import { useEffect, useMemo, useState } from 'react'
-import { Check, Clock3, ExternalLink, Pencil, Plus, Trash2, X } from 'lucide-react'
+import { Check, Clock3, ExternalLink, Eye, Pencil, Plus, Trash2, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '@/integrations/supabase/client'
 import { AdminGuard } from '@/components/study/admin-guard'
@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { useServerFn } from '@tanstack/react-start'
 import { materialSubmissionSchema } from '@/lib/material-schemas'
 import { publishMaterial, reviewMaterial } from '@/lib/materials.functions'
+import { getAdminMaterialPreview } from '@/lib/authors.functions'
 
 export const Route = createFileRoute('/_authenticated/admin/materials')({
   head: () => ({ meta: [
@@ -26,13 +27,17 @@ export const Route = createFileRoute('/_authenticated/admin/materials')({
 })
 
 type Status = MaterialDoc['approval_status'] | 'all'
-type MaterialForm = { title:string; description:string; subject_id:string; type:'PDF'|'Video'|'Article'; url:string; tags:string }
-const blank: MaterialForm = { title:'', description:'', subject_id:'', type:'PDF', url:'https://', tags:'' }
+type MaterialForm = { title:string; description:string; subject_id:string; author_id:string; type:'PDF'|'Video'|'Article'; url:string; tags:string }
+type Author = { id:string; name:string; affiliation:string }
+const blank: MaterialForm = { title:'', description:'', subject_id:'', author_id:'', type:'PDF', url:'https://', tags:'' }
 
 function Materials() {
   const { user } = Route.useRouteContext()
   const [items, setItems] = useState<MaterialDoc[]>([])
   const [subjects, setSubjects] = useState<Subject[]>([])
+  const [authors, setAuthors] = useState<Author[]>([])
+  const [previewing, setPreviewing] = useState<MaterialDoc | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [form, setForm] = useState<MaterialForm>(blank)
   const [edit, setEdit] = useState<string | null>(null)
   const [filter, setFilter] = useState<Status>('pending')
@@ -42,15 +47,18 @@ function Materials() {
   const [file, setFile] = useState<File | null>(null)
   const reviewFn = useServerFn(reviewMaterial)
   const publishFn = useServerFn(publishMaterial)
+  const previewFn = useServerFn(getAdminMaterialPreview)
 
   async function load() {
-    const [materials, subjectResult] = await Promise.all([
-      supabase.from('materials').select('*,subjects(name)').order('submitted_at', { ascending: false }),
+    const [materials, subjectResult, authorResult] = await Promise.all([
+      supabase.from('materials').select('*,subjects(name),material_authors(*)').order('submitted_at', { ascending: false }),
       supabase.from('subjects').select('*').order('name'),
+      supabase.from('material_authors').select('id,name,affiliation').order('name'),
     ])
     if (materials.error) { toast.error(materials.error.message); return }
     setItems((materials.data ?? []) as MaterialDoc[])
     setSubjects((subjectResult.data ?? []) as Subject[])
+    setAuthors((authorResult.data ?? []) as Author[])
   }
   useEffect(() => { void load() }, [])
 
@@ -73,11 +81,11 @@ function Materials() {
         if (upload.error) throw upload.error
       }
       if (edit) {
-        const payload = { title:form.title.trim(), description:form.description.trim(), subject_id:form.subject_id, type:form.type, url:form.url.trim(), tags:form.tags.split(',').map(tag => tag.trim()).filter(Boolean), ...(file ? { file_path:filePath, file_name:file.name, file_mime_type:file.type, file_size_bytes:file.size } : {}) }
+        const payload = { title:form.title.trim(), description:form.description.trim(), subject_id:form.subject_id, type:form.type, url:form.url.trim(), tags:form.tags.split(',').map(tag => tag.trim()).filter(Boolean), author_id:form.author_id || null, ...(file ? { file_path:filePath, file_name:file.name, file_mime_type:file.type, file_size_bytes:file.size } : {}) }
         const result = await supabase.from('materials').update(payload).eq('id', edit)
         if (result.error) throw result.error
       } else {
-        const payload = materialSubmissionSchema.parse({ title:form.title, description:form.description, subjectId:form.subject_id, type:form.type, url:form.url === 'https://' ? '' : form.url, tags:form.tags.split(',').map(tag => tag.trim()).filter(Boolean), filePath, fileName:file?.name ?? null, fileMimeType:file?.type ?? null, fileSizeBytes:file?.size ?? null })
+        const payload = materialSubmissionSchema.parse({ title:form.title, description:form.description, subjectId:form.subject_id, type:form.type, url:form.url === 'https://' ? '' : form.url, tags:form.tags.split(',').map(tag => tag.trim()).filter(Boolean), authorId:form.author_id || null, filePath, fileName:file?.name ?? null, fileMimeType:file?.type ?? null, fileSizeBytes:file?.size ?? null })
         await publishFn({ data: payload })
       }
       toast.success(edit ? 'Material updated' : 'Material published')
@@ -86,6 +94,11 @@ function Materials() {
       if (filePath) await supabase.storage.from('study-materials').remove([filePath])
       toast.error(error instanceof Error ? error.message : 'Could not save material')
     } finally { setBusy(null) }
+  }
+
+  async function showPreview(material: MaterialDoc) {
+    setPreviewing(material); setPreviewUrl(material.url || null)
+    if (material.file_path) { try { const result = await previewFn({ data: { materialId: material.id } }); setPreviewUrl(result.signedUrl) } catch (error) { toast.error(error instanceof Error ? error.message : 'Preview unavailable') } }
   }
 
   async function approve(id: string) {
@@ -121,16 +134,16 @@ function Materials() {
       {visible.map(material => <article key={material.id}>
         <div className="approval-copy"><div className="approval-meta"><span className={`status-badge status-${material.approval_status}`}>{material.approval_status}</span><span>{material.subjects?.name} · {material.type}</span><time>{new Date(material.submitted_at).toLocaleDateString()}</time></div><h2>{material.title}</h2><p>{material.description}</p><a href={material.url} target="_blank" rel="noreferrer" className="text-link">Inspect resource <ExternalLink /></a>{material.rejection_reason && <p className="rejection-note">Reason: {material.rejection_reason}</p>}</div>
         <div className="approval-actions">
-          {material.approval_status === 'pending' && <><Button onClick={() => void approve(material.id)} disabled={busy === material.id}><Check />Approve</Button><Button variant="outline" onClick={() => { setRejecting(material.id); setReason('') }}><X />Reject</Button></>}
-          <Button variant="ghost" size="icon" aria-label={`Edit ${material.title}`} onClick={() => { setEdit(material.id); setForm({title:material.title,description:material.description,subject_id:material.subject_id,type:material.type,url:material.url,tags:material.tags.join(', ')}) }}><Pencil /></Button>
+          <Button variant="outline" onClick={() => void showPreview(material)}><Eye />Preview</Button>{material.approval_status === 'pending' && <><Button onClick={() => void approve(material.id)} disabled={busy === material.id}><Check />Approve</Button><Button variant="outline" onClick={() => { setRejecting(material.id); setReason('') }}><X />Reject</Button></>}
+          <Button variant="ghost" size="icon" aria-label={`Edit ${material.title}`} onClick={() => { setEdit(material.id); setForm({title:material.title,description:material.description,subject_id:material.subject_id,author_id:material.author_id??'',type:material.type,url:material.url,tags:material.tags.join(', ')}) }}><Pencil /></Button>
           <Button variant="ghost" size="icon" aria-label={`Delete ${material.title}`} onClick={() => void remove(material.id)}><Trash2 /></Button>
         </div>
         {rejecting === material.id && <div className="reject-panel"><Textarea aria-label="Rejection reason" placeholder="Explain what needs to be corrected" value={reason} onChange={event => setReason(event.target.value)} minLength={5} /><div><Button variant="ghost" onClick={() => setRejecting(null)}>Cancel</Button><Button variant="destructive" disabled={busy === material.id} onClick={() => void reject(material.id)}>Confirm rejection</Button></div></div>}
       </article>)}
       {!visible.length && <div className="empty-state compact"><Check /><h2>Queue clear</h2><p>No {filter === 'all' ? '' : filter} materials to show.</p></div>}
     </div>
-    <section className="admin-publisher"><div className="section-heading"><div><p className="eyebrow">Administrator publishing</p><h2>{edit ? 'Edit material' : 'Add a verified material'}</h2></div>{edit && <Button variant="ghost" onClick={() => { setEdit(null); setForm(blank) }}>Cancel edit</Button>}</div>
-      <form onSubmit={save} className="admin-form"><Input aria-label="Material title" placeholder="Material title" value={form.title} onChange={event => setForm({...form,title:event.target.value})} required minLength={3}/><Input aria-label="Material description" placeholder="Description" value={form.description} onChange={event => setForm({...form,description:event.target.value})} required minLength={20}/><select aria-label="Subject" required value={form.subject_id} onChange={event => setForm({...form,subject_id:event.target.value})}><option value="">Select subject</option>{subjects.map(subject => <option key={subject.id} value={subject.id}>{subject.name}</option>)}</select><select aria-label="Material type" value={form.type} onChange={event => setForm({...form,type:event.target.value as MaterialForm['type']})}><option>PDF</option><option>Video</option><option>Article</option></select><Input aria-label="Resource URL" type="url" placeholder="Resource URL (optional with file)" value={form.url} onChange={event => setForm({...form,url:event.target.value})}/><Input aria-label="Tags" placeholder="Tags, comma separated" value={form.tags} onChange={event => setForm({...form,tags:event.target.value})}/><Input aria-label="Upload file" type="file" accept="application/pdf,video/mp4,video/webm" onChange={event => setFile(event.target.files?.[0] ?? null)}/><Button disabled={busy === 'publish' || busy === edit}><Plus />{edit ? 'Update' : 'Publish'}</Button></form>
+    {previewing && <section className="material-preview" aria-label="Material preview"><div className="section-heading"><div><p className="eyebrow"><Eye/> Review preview</p><h2>{previewing.title}</h2></div><Button variant="ghost" onClick={() => { setPreviewing(null); setPreviewUrl(null) }}><X/>Close</Button></div><div className="preview-meta"><span>{previewing.subjects?.name}</span><span>{previewing.type}</span>{previewing.material_authors && <span>By {previewing.material_authors.name}</span>}</div><p className="preview-description">{previewing.description}</p><div className="flex flex-wrap gap-2">{previewing.tags.map(tag=><span className="tag" key={tag}>{tag}</span>)}</div>{previewUrl && previewing.file_mime_type === 'application/pdf' && <iframe title={`Preview ${previewing.title}`} src={previewUrl} sandbox="allow-same-origin"/>}{previewUrl && previewing.file_mime_type?.startsWith('video/') && <video src={previewUrl} controls/>}{previewUrl && !previewing.file_path && <a className="text-link mt-5" href={previewUrl} target="_blank" rel="noreferrer">Open original resource <ExternalLink/></a>}</section>}<section className="admin-publisher"><div className="section-heading"><div><p className="eyebrow">Administrator publishing</p><h2>{edit ? 'Edit material' : 'Add a verified material'}</h2></div>{edit && <Button variant="ghost" onClick={() => { setEdit(null); setForm(blank) }}>Cancel edit</Button>}</div>
+      <form onSubmit={save} className="admin-form"><Input aria-label="Material title" placeholder="Material title" value={form.title} onChange={event => setForm({...form,title:event.target.value})} required minLength={3}/><Input aria-label="Material description" placeholder="Description" value={form.description} onChange={event => setForm({...form,description:event.target.value})} required minLength={20}/><select aria-label="Subject" required value={form.subject_id} onChange={event => setForm({...form,subject_id:event.target.value})}><option value="">Select subject</option>{subjects.map(subject => <option key={subject.id} value={subject.id}>{subject.name}</option>)}</select><select aria-label="Author" value={form.author_id} onChange={event => setForm({...form,author_id:event.target.value})}><option value="">No author selected</option>{authors.map(author => <option key={author.id} value={author.id}>{author.name} — {author.affiliation}</option>)}</select><select aria-label="Material type" value={form.type} onChange={event => setForm({...form,type:event.target.value as MaterialForm['type']})}><option>PDF</option><option>Video</option><option>Article</option></select><Input aria-label="Resource URL" type="url" placeholder="Resource URL (optional with file)" value={form.url} onChange={event => setForm({...form,url:event.target.value})}/><Input aria-label="Tags" placeholder="Tags, comma separated" value={form.tags} onChange={event => setForm({...form,tags:event.target.value})}/><Input aria-label="Upload file" type="file" accept="application/pdf,video/mp4,video/webm" onChange={event => setFile(event.target.files?.[0] ?? null)}/><Button disabled={busy === 'publish' || busy === edit}><Plus />{edit ? 'Update' : 'Publish'}</Button></form>
     </section><Outlet />
   </div></AdminGuard>
 }

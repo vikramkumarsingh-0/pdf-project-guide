@@ -15,11 +15,13 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticated/history'
+import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedRecommendationsRouteImport } from './routes/_authenticated/recommendations'
 import { Route as AuthenticatedSearchRouteImport } from './routes/_authenticated/search'
 import { Route as AuthenticatedSubmissionsRouteImport } from './routes/_authenticated/submissions'
 import { Route as AuthenticatedSubmitRouteImport } from './routes/_authenticated/submit'
+import { Route as AuthenticatedAdminAuthorsRouteImport } from './routes/_authenticated/admin.authors'
 import { Route as AuthenticatedAdminDashboardRouteImport } from './routes/_authenticated/admin.dashboard'
 import { Route as AuthenticatedAdminMaterialsRouteImport } from './routes/_authenticated/admin.materials'
 import { Route as AuthenticatedAdminReportsRouteImport } from './routes/_authenticated/admin.reports'
@@ -57,6 +59,11 @@ const AuthenticatedHistoryRoute = AuthenticatedHistoryRouteImport.update({
   path: '/history',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
@@ -84,6 +91,12 @@ const AuthenticatedSubmitRoute = AuthenticatedSubmitRouteImport.update({
   path: '/submit',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAdminAuthorsRoute =
+  AuthenticatedAdminAuthorsRouteImport.update({
+    id: '/admin/authors',
+    path: '/admin/authors',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminDashboardRoute =
   AuthenticatedAdminDashboardRouteImport.update({
     id: '/admin/dashboard',
@@ -133,11 +146,13 @@ export interface FileRoutesByFullPath {
   '/register': typeof RegisterRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/history': typeof AuthenticatedHistoryRoute
+  '/onboarding': typeof AuthenticatedOnboardingRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/recommendations': typeof AuthenticatedRecommendationsRoute
   '/search': typeof AuthenticatedSearchRoute
   '/submissions': typeof AuthenticatedSubmissionsRoute
   '/submit': typeof AuthenticatedSubmitRoute
+  '/admin/authors': typeof AuthenticatedAdminAuthorsRoute
   '/admin/dashboard': typeof AuthenticatedAdminDashboardRoute
   '/admin/materials': typeof AuthenticatedAdminMaterialsRouteWithChildren
   '/admin/reports': typeof AuthenticatedAdminReportsRoute
@@ -152,11 +167,13 @@ export interface FileRoutesByTo {
   '/register': typeof RegisterRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/history': typeof AuthenticatedHistoryRoute
+  '/onboarding': typeof AuthenticatedOnboardingRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/recommendations': typeof AuthenticatedRecommendationsRoute
   '/search': typeof AuthenticatedSearchRoute
   '/submissions': typeof AuthenticatedSubmissionsRoute
   '/submit': typeof AuthenticatedSubmitRoute
+  '/admin/authors': typeof AuthenticatedAdminAuthorsRoute
   '/admin/dashboard': typeof AuthenticatedAdminDashboardRoute
   '/admin/materials': typeof AuthenticatedAdminMaterialsRouteWithChildren
   '/admin/reports': typeof AuthenticatedAdminReportsRoute
@@ -173,11 +190,13 @@ export interface FileRoutesById {
   '/register': typeof RegisterRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/history': typeof AuthenticatedHistoryRoute
+  '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/recommendations': typeof AuthenticatedRecommendationsRoute
   '/_authenticated/search': typeof AuthenticatedSearchRoute
   '/_authenticated/submissions': typeof AuthenticatedSubmissionsRoute
   '/_authenticated/submit': typeof AuthenticatedSubmitRoute
+  '/_authenticated/admin/authors': typeof AuthenticatedAdminAuthorsRoute
   '/_authenticated/admin/dashboard': typeof AuthenticatedAdminDashboardRoute
   '/_authenticated/admin/materials': typeof AuthenticatedAdminMaterialsRouteWithChildren
   '/_authenticated/admin/reports': typeof AuthenticatedAdminReportsRoute
@@ -194,11 +213,13 @@ export interface FileRouteTypes {
     | '/register'
     | '/dashboard'
     | '/history'
+    | '/onboarding'
     | '/profile'
     | '/recommendations'
     | '/search'
     | '/submissions'
     | '/submit'
+    | '/admin/authors'
     | '/admin/dashboard'
     | '/admin/materials'
     | '/admin/reports'
@@ -213,11 +234,13 @@ export interface FileRouteTypes {
     | '/register'
     | '/dashboard'
     | '/history'
+    | '/onboarding'
     | '/profile'
     | '/recommendations'
     | '/search'
     | '/submissions'
     | '/submit'
+    | '/admin/authors'
     | '/admin/dashboard'
     | '/admin/materials'
     | '/admin/reports'
@@ -233,11 +256,13 @@ export interface FileRouteTypes {
     | '/register'
     | '/_authenticated/dashboard'
     | '/_authenticated/history'
+    | '/_authenticated/onboarding'
     | '/_authenticated/profile'
     | '/_authenticated/recommendations'
     | '/_authenticated/search'
     | '/_authenticated/submissions'
     | '/_authenticated/submit'
+    | '/_authenticated/admin/authors'
     | '/_authenticated/admin/dashboard'
     | '/_authenticated/admin/materials'
     | '/_authenticated/admin/reports'
@@ -298,6 +323,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedHistoryRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/onboarding': {
+      id: '/_authenticated/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/profile': {
       id: '/_authenticated/profile'
       path: '/profile'
@@ -331,6 +363,13 @@ declare module '@tanstack/react-router' {
       path: '/submit'
       fullPath: '/submit'
       preLoaderRoute: typeof AuthenticatedSubmitRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/authors': {
+      id: '/_authenticated/admin/authors'
+      path: '/admin/authors'
+      fullPath: '/admin/authors'
+      preLoaderRoute: typeof AuthenticatedAdminAuthorsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/dashboard': {
@@ -405,11 +444,13 @@ const AuthenticatedAdminMaterialsRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedHistoryRoute: typeof AuthenticatedHistoryRoute
+  AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedRecommendationsRoute: typeof AuthenticatedRecommendationsRoute
   AuthenticatedSearchRoute: typeof AuthenticatedSearchRoute
   AuthenticatedSubmissionsRoute: typeof AuthenticatedSubmissionsRoute
   AuthenticatedSubmitRoute: typeof AuthenticatedSubmitRoute
+  AuthenticatedAdminAuthorsRoute: typeof AuthenticatedAdminAuthorsRoute
   AuthenticatedAdminDashboardRoute: typeof AuthenticatedAdminDashboardRoute
   AuthenticatedAdminMaterialsRoute: typeof AuthenticatedAdminMaterialsRouteWithChildren
   AuthenticatedAdminReportsRoute: typeof AuthenticatedAdminReportsRoute
@@ -420,11 +461,13 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedHistoryRoute: AuthenticatedHistoryRoute,
+  AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedRecommendationsRoute: AuthenticatedRecommendationsRoute,
   AuthenticatedSearchRoute: AuthenticatedSearchRoute,
   AuthenticatedSubmissionsRoute: AuthenticatedSubmissionsRoute,
   AuthenticatedSubmitRoute: AuthenticatedSubmitRoute,
+  AuthenticatedAdminAuthorsRoute: AuthenticatedAdminAuthorsRoute,
   AuthenticatedAdminDashboardRoute: AuthenticatedAdminDashboardRoute,
   AuthenticatedAdminMaterialsRoute:
     AuthenticatedAdminMaterialsRouteWithChildren,
