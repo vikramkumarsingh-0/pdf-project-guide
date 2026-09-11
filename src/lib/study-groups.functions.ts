@@ -11,6 +11,7 @@ const groupIdSchema = z.object({ groupId: z.string().uuid() })
 const noteSchema = z.object({ groupId: z.string().uuid(), content: z.string().trim().min(2).max(2000) })
 const noteCompletionSchema = z.object({ noteId: z.string().uuid(), completed: z.boolean() })
 const resourceSchema = z.object({ groupId: z.string().uuid(), materialId: z.string().uuid() })
+type MemberActivity = { user_id: string; member_name: string; notes_shared: number; notes_completed: number; resources_shared: number; subject_views: number; subject_ratings: number }
 
 export const listStudyGroups = createServerFn({ method: 'GET' })
   .middleware([requireSupabaseAuth])
@@ -32,10 +33,10 @@ export const listStudyGroups = createServerFn({ method: 'GET' })
         context.supabase.from('study_group_note_completions').select('note_id,user_id,completed_at').eq('user_id', context.userId),
         context.supabase.from('materials').select('id,title,type').eq('subject_id', group.subject_id).eq('approval_status', 'approved').order('title'),
       ])
-      let memberActivity: unknown[] = []
+      let memberActivity: MemberActivity[] = []
       if (group.created_by === context.userId) {
         const activityResult = await context.supabase.rpc('get_study_group_member_activity', { _group_id: group.id })
-        if (!activityResult.error) memberActivity = activityResult.data ?? []
+        if (!activityResult.error) memberActivity = (activityResult.data ?? []) as MemberActivity[]
       }
       const completedIds = new Set((completionsResult.data ?? []).map((row) => row.note_id))
       return { ...group, joined: true, progress: progressResult.data, notes: (notesResult.data ?? []).map((note) => ({ ...note, completed: completedIds.has(note.id) })), resources: resourcesResult.data ?? [], availableMaterials: catalogResult.data ?? [], memberActivity }
