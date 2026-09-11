@@ -71,12 +71,17 @@ export type Database = {
       }
       materials: {
         Row: {
+          approval_status: Database["public"]["Enums"]["material_approval_status"]
           average_rating: number
           created_at: string
           description: string
           id: string
           rating_count: number
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
           subject_id: string
+          submitted_at: string
           tags: string[]
           title: string
           type: Database["public"]["Enums"]["material_type"]
@@ -86,12 +91,17 @@ export type Database = {
           view_count: number
         }
         Insert: {
+          approval_status?: Database["public"]["Enums"]["material_approval_status"]
           average_rating?: number
           created_at?: string
           description: string
           id?: string
           rating_count?: number
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           subject_id: string
+          submitted_at?: string
           tags?: string[]
           title: string
           type: Database["public"]["Enums"]["material_type"]
@@ -101,12 +111,17 @@ export type Database = {
           view_count?: number
         }
         Update: {
+          approval_status?: Database["public"]["Enums"]["material_approval_status"]
           average_rating?: number
           created_at?: string
           description?: string
           id?: string
           rating_count?: number
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           subject_id?: string
+          submitted_at?: string
           tags?: string[]
           title?: string
           type?: Database["public"]["Enums"]["material_type"]
@@ -320,6 +335,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "student"
+      material_approval_status: "pending" | "approved" | "rejected"
       material_type: "PDF" | "Video" | "Article"
     }
     CompositeTypes: {
@@ -449,6 +465,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "student"],
+      material_approval_status: ["pending", "approved", "rejected"],
       material_type: ["PDF", "Video", "Article"],
     },
   },
