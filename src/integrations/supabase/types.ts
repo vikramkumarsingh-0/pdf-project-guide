@@ -40,6 +40,42 @@ export type Database = {
           },
         ]
       }
+      material_authors: {
+        Row: {
+          affiliation: string
+          biography: string
+          created_at: string
+          expertise: string[]
+          id: string
+          image_url: string | null
+          name: string
+          updated_at: string
+          website_url: string | null
+        }
+        Insert: {
+          affiliation?: string
+          biography?: string
+          created_at?: string
+          expertise?: string[]
+          id?: string
+          image_url?: string | null
+          name: string
+          updated_at?: string
+          website_url?: string | null
+        }
+        Update: {
+          affiliation?: string
+          biography?: string
+          created_at?: string
+          expertise?: string[]
+          id?: string
+          image_url?: string | null
+          name?: string
+          updated_at?: string
+          website_url?: string | null
+        }
+        Relationships: []
+      }
       material_views: {
         Row: {
           id: string
@@ -72,6 +108,7 @@ export type Database = {
       materials: {
         Row: {
           approval_status: Database["public"]["Enums"]["material_approval_status"]
+          author_id: string | null
           average_rating: number
           created_at: string
           description: string
@@ -96,6 +133,7 @@ export type Database = {
         }
         Insert: {
           approval_status?: Database["public"]["Enums"]["material_approval_status"]
+          author_id?: string | null
           average_rating?: number
           created_at?: string
           description: string
@@ -120,6 +158,7 @@ export type Database = {
         }
         Update: {
           approval_status?: Database["public"]["Enums"]["material_approval_status"]
+          author_id?: string | null
           average_rating?: number
           created_at?: string
           description?: string
@@ -143,6 +182,13 @@ export type Database = {
           view_count?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "materials_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "material_authors"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "materials_subject_id_fkey"
             columns: ["subject_id"]
