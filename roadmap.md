@@ -20,3 +20,6 @@
 - [x] Add subject-based study groups, shared notes, and group progress.
 - [x] Add student material questions/comments and admin feedback reporting.
 - [x] Seed realistic student auth accounts and verify onboarding, recommendations, searches, and ratings persist.
+- [ ] Add educator applications, invitations, verified accounts, and a teacher portal.
+- [ ] Add group note completion, shared resources, and owner-only member activity.
+- [ ] Expand realistic demo learner activity across recommendations and group progress.
