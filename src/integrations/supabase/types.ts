@@ -164,6 +164,62 @@ export type Database = {
         }
         Relationships: []
       }
+      material_edit_requests: {
+        Row: {
+          admin_note: string | null
+          created_at: string
+          id: string
+          material_id: string
+          message: string
+          proposed_description: string | null
+          proposed_title: string | null
+          proposed_url: string | null
+          requested_by: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["material_edit_status"]
+          updated_at: string
+        }
+        Insert: {
+          admin_note?: string | null
+          created_at?: string
+          id?: string
+          material_id: string
+          message: string
+          proposed_description?: string | null
+          proposed_title?: string | null
+          proposed_url?: string | null
+          requested_by: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["material_edit_status"]
+          updated_at?: string
+        }
+        Update: {
+          admin_note?: string | null
+          created_at?: string
+          id?: string
+          material_id?: string
+          message?: string
+          proposed_description?: string | null
+          proposed_title?: string | null
+          proposed_url?: string | null
+          requested_by?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["material_edit_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_edit_requests_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       material_feedback: {
         Row: {
           created_at: string
@@ -711,6 +767,7 @@ export type Database = {
       feedback_status: "open" | "resolved"
       feedback_type: "question" | "comment"
       material_approval_status: "pending" | "approved" | "rejected"
+      material_edit_status: "open" | "applied" | "declined"
       material_type: "PDF" | "Video" | "Article"
     }
     CompositeTypes: {
@@ -844,6 +901,7 @@ export const Constants = {
       feedback_status: ["open", "resolved"],
       feedback_type: ["question", "comment"],
       material_approval_status: ["pending", "approved", "rejected"],
+      material_edit_status: ["open", "applied", "declined"],
       material_type: ["PDF", "Video", "Article"],
     },
   },

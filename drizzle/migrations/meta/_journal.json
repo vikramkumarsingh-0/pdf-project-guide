@@ -57,6 +57,13 @@
       "when": 1789108877438,
       "tag": "0007_add_educator_portal_and_group_progress",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1789114420863,
+      "tag": "0008_add_material_edit_requests",
+      "breakpoints": true
     }
   ]
 }
