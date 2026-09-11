@@ -1,24 +1,3 @@
-import { createFileRoute } from "@tanstack/react-router";
-
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
-export const Route = createFileRoute("/")({
-  component: Index,
-});
-
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
-function Index() {
-  return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
-    </div>
-  );
-}
+import { createFileRoute,Link } from '@tanstack/react-router';import { ArrowRight,BookOpen,BrainCircuit,ChartNoAxesCombined,CheckCircle2,Sparkles } from 'lucide-react';import { Brand } from '@/components/study/brand';import { Button } from '@/components/ui/button';
+export const Route=createFileRoute('/')({head:()=>({meta:[{title:'StudyFlow AI | Study smarter, not longer'},{name:'description',content:'Discover trusted study materials with personalized, explainable recommendations.'},{property:'og:title',content:'StudyFlow AI'},{property:'og:description',content:'Personalized academic resources that adapt to your learning.'},{property:'og:type',content:'website'},{name:'twitter:card',content:'summary_large_image'}]}),component:Home});
+function Home(){return <main className="landing"><header className="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 lg:px-8"><Brand/><nav className="flex items-center gap-2"><Link to="/login"><Button variant="ghost">Sign in</Button></Link><Link to="/register"><Button>Get started <ArrowRight/></Button></Link></nav></header><section className="landing-hero"><div className="mx-auto max-w-7xl px-5 py-16 lg:px-8 lg:py-24"><div className="max-w-4xl"><p className="eyebrow flex items-center gap-2"><Sparkles/>Explainable recommendations for every learner</p><h1>Your next breakthrough starts with the right material.</h1><p className="mt-6 max-w-2xl text-lg leading-8 text-muted-foreground">StudyFlow AI understands your subjects, searches, and progress to surface resources that genuinely move your learning forward.</p><div className="mt-9 flex flex-wrap gap-3"><Link to="/register"><Button size="lg">Start learning free <ArrowRight/></Button></Link><Link to="/search"><Button size="lg" variant="outline">Explore the library</Button></Link></div><div className="mt-12 flex flex-wrap gap-x-8 gap-y-3 text-sm text-muted-foreground">{['48 curated resources','8 core subjects','Transparent scoring'].map(x=><span key={x} className="flex items-center gap-2"><CheckCircle2 className="text-primary"/>{x}</span>)}</div></div></div></section><section className="landing-band"><div className="mx-auto grid max-w-7xl gap-8 px-5 py-14 md:grid-cols-3 lg:px-8">{[[BrainCircuit,'Personal to you','Recommendations adapt as you search, rate, and learn.'],[BookOpen,'Academic by design','Focused resources across essential computing subjects.'],[ChartNoAxesCombined,'Reasons, not guesses','Every suggestion tells you why it earned its place.']].map(([Icon,t,d])=><article key={String(t)}><span className="feature-icon"><Icon/></span><h2 className="mt-5 text-xl font-semibold">{t as string}</h2><p className="mt-2 leading-7 text-muted-foreground">{d as string}</p></article>)}</div></section></main>}
