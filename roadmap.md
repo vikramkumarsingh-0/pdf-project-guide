@@ -23,3 +23,8 @@
 - [x] Add educator applications, invitations, verified accounts, and a teacher portal.
 - [x] Add group note completion, shared resources, and owner-only member activity.
 - [x] Expand realistic demo learner activity across recommendations and group progress.
+- [x] Add a teacher dashboard with approved materials, top-viewed reach, group activity, and edit requests.
+- [x] Add educator signup with subject expertise leading into the application and portal.
+- [x] Add an admin queue to apply or decline teacher material corrections.
+- [x] Seed more educator profiles with approved materials and realistic view counts.
+- [x] Verify educator signup, teacher dashboard, and correction queue in the live preview.
