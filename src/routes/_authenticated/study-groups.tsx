@@ -40,6 +40,7 @@ function StudyGroups() {
   const postNote = useServerFn(postStudyGroupNote)
   const [groups, setGroups] = useState<Group[]>([])
   const [enrolled, setEnrolled] = useState<string[]>([])
+  const [enrolledSubjects, setEnrolledSubjects] = useState<Array<{subject_id:string;subjects:{name:string}|null}>>([])
   const [form, setForm] = useState({ name: '', description: '', subjectId: '' })
   const [notes, setNotes] = useState<Record<string, string>>({})
   const [busy, setBusy] = useState(false)
@@ -48,8 +49,10 @@ function StudyGroups() {
     try {
       const result = await list()
       setGroups(result.groups as Group[])
-      setEnrolled(result.enrolledSubjectIds)
-      setForm((current) => ({ ...current, subjectId: current.subjectId || result.enrolledSubjectIds[0] || '' }))
+      setEnrolledSubjects(result.enrolledSubjects as Array<{subject_id:string;subjects:{name:string}|null}>)
+      const subjectIds = result.enrolledSubjects.map((row) => row.subject_id)
+      setEnrolled(subjectIds)
+      setForm((current) => ({ ...current, subjectId: current.subjectId || subjectIds[0] || '' }))
     } catch (error) { toast.error(error instanceof Error ? error.message : 'Could not load study groups') }
   }
   useEffect(() => { void load() }, [])
@@ -86,7 +89,7 @@ function StudyGroups() {
         </article>)}
         {!groups.length && <div className="empty-state compact"><UsersRound /><h2>No groups yet</h2><p>Create the first group for one of your subjects.</p></div>}
       </section>
-      <aside className="create-group"><BookOpenCheck /><h2>Start a group</h2><p>Create a focused space for one of your enrolled subjects.</p><form onSubmit={createGroup}><div><Label htmlFor="group-name">Group name</Label><Input id="group-name" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} required minLength={3}/></div><div><Label htmlFor="group-subject">Subject</Label><select id="group-subject" value={form.subjectId} onChange={(event) => setForm({ ...form, subjectId: event.target.value })} required>{groups.filter((group, index, all) => enrolled.includes(group.subject_id) && all.findIndex((item) => item.subject_id === group.subject_id) === index).map((group) => <option key={group.subject_id} value={group.subject_id}>{group.subjects?.name}</option>)}</select></div><div><Label htmlFor="group-description">Purpose</Label><Textarea id="group-description" value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} maxLength={600}/></div><Button disabled={busy || !enrolled.length}><Plus />Create group</Button></form></aside>
+      <aside className="create-group"><BookOpenCheck /><h2>Start a group</h2><p>Create a focused space for one of your enrolled subjects.</p><form onSubmit={createGroup}><div><Label htmlFor="group-name">Group name</Label><Input id="group-name" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} required minLength={3}/></div><div><Label htmlFor="group-subject">Subject</Label><select id="group-subject" value={form.subjectId} onChange={(event) => setForm({ ...form, subjectId: event.target.value })} required>{enrolledSubjects.map((subject) => <option key={subject.subject_id} value={subject.subject_id}>{subject.subjects?.name}</option>)}</select></div><div><Label htmlFor="group-description">Purpose</Label><Textarea id="group-description" value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} maxLength={600}/></div><Button disabled={busy || !enrolled.length}><Plus />Create group</Button></form></aside>
     </div>
   </div>
 }

@@ -19,6 +19,7 @@ import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authentic
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedRecommendationsRouteImport } from './routes/_authenticated/recommendations'
 import { Route as AuthenticatedSearchRouteImport } from './routes/_authenticated/search'
+import { Route as AuthenticatedStudyGroupsRouteImport } from './routes/_authenticated/study-groups'
 import { Route as AuthenticatedSubmissionsRouteImport } from './routes/_authenticated/submissions'
 import { Route as AuthenticatedSubmitRouteImport } from './routes/_authenticated/submit'
 import { Route as AuthenticatedAdminAuthorsRouteImport } from './routes/_authenticated/admin.authors'
@@ -80,6 +81,12 @@ const AuthenticatedSearchRoute = AuthenticatedSearchRouteImport.update({
   path: '/search',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedStudyGroupsRoute =
+  AuthenticatedStudyGroupsRouteImport.update({
+    id: '/study-groups',
+    path: '/study-groups',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedSubmissionsRoute =
   AuthenticatedSubmissionsRouteImport.update({
     id: '/submissions',
@@ -150,6 +157,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof AuthenticatedProfileRoute
   '/recommendations': typeof AuthenticatedRecommendationsRoute
   '/search': typeof AuthenticatedSearchRoute
+  '/study-groups': typeof AuthenticatedStudyGroupsRoute
   '/submissions': typeof AuthenticatedSubmissionsRoute
   '/submit': typeof AuthenticatedSubmitRoute
   '/admin/authors': typeof AuthenticatedAdminAuthorsRoute
@@ -171,6 +179,7 @@ export interface FileRoutesByTo {
   '/profile': typeof AuthenticatedProfileRoute
   '/recommendations': typeof AuthenticatedRecommendationsRoute
   '/search': typeof AuthenticatedSearchRoute
+  '/study-groups': typeof AuthenticatedStudyGroupsRoute
   '/submissions': typeof AuthenticatedSubmissionsRoute
   '/submit': typeof AuthenticatedSubmitRoute
   '/admin/authors': typeof AuthenticatedAdminAuthorsRoute
@@ -194,6 +203,7 @@ export interface FileRoutesById {
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/recommendations': typeof AuthenticatedRecommendationsRoute
   '/_authenticated/search': typeof AuthenticatedSearchRoute
+  '/_authenticated/study-groups': typeof AuthenticatedStudyGroupsRoute
   '/_authenticated/submissions': typeof AuthenticatedSubmissionsRoute
   '/_authenticated/submit': typeof AuthenticatedSubmitRoute
   '/_authenticated/admin/authors': typeof AuthenticatedAdminAuthorsRoute
@@ -217,6 +227,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/recommendations'
     | '/search'
+    | '/study-groups'
     | '/submissions'
     | '/submit'
     | '/admin/authors'
@@ -238,6 +249,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/recommendations'
     | '/search'
+    | '/study-groups'
     | '/submissions'
     | '/submit'
     | '/admin/authors'
@@ -260,6 +272,7 @@ export interface FileRouteTypes {
     | '/_authenticated/profile'
     | '/_authenticated/recommendations'
     | '/_authenticated/search'
+    | '/_authenticated/study-groups'
     | '/_authenticated/submissions'
     | '/_authenticated/submit'
     | '/_authenticated/admin/authors'
@@ -349,6 +362,13 @@ declare module '@tanstack/react-router' {
       path: '/search'
       fullPath: '/search'
       preLoaderRoute: typeof AuthenticatedSearchRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/study-groups': {
+      id: '/_authenticated/study-groups'
+      path: '/study-groups'
+      fullPath: '/study-groups'
+      preLoaderRoute: typeof AuthenticatedStudyGroupsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/submissions': {
@@ -448,6 +468,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedRecommendationsRoute: typeof AuthenticatedRecommendationsRoute
   AuthenticatedSearchRoute: typeof AuthenticatedSearchRoute
+  AuthenticatedStudyGroupsRoute: typeof AuthenticatedStudyGroupsRoute
   AuthenticatedSubmissionsRoute: typeof AuthenticatedSubmissionsRoute
   AuthenticatedSubmitRoute: typeof AuthenticatedSubmitRoute
   AuthenticatedAdminAuthorsRoute: typeof AuthenticatedAdminAuthorsRoute
@@ -465,6 +486,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedRecommendationsRoute: AuthenticatedRecommendationsRoute,
   AuthenticatedSearchRoute: AuthenticatedSearchRoute,
+  AuthenticatedStudyGroupsRoute: AuthenticatedStudyGroupsRoute,
   AuthenticatedSubmissionsRoute: AuthenticatedSubmissionsRoute,
   AuthenticatedSubmitRoute: AuthenticatedSubmitRoute,
   AuthenticatedAdminAuthorsRoute: AuthenticatedAdminAuthorsRoute,

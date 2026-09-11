@@ -16,7 +16,7 @@ export const listStudyGroups = createServerFn({ method: 'GET' })
     const [groupsResult, membershipsResult, enrollmentsResult] = await Promise.all([
       context.supabase.from('study_groups').select('id,name,description,subject_id,created_by,created_at,subjects(name)').order('created_at', { ascending: false }),
       context.supabase.from('study_group_members').select('group_id,user_id,joined_at').eq('user_id', context.userId),
-      context.supabase.from('enrollments').select('subject_id').eq('user_id', context.userId),
+      context.supabase.from('enrollments').select('subject_id,subjects(name)').eq('user_id', context.userId),
     ])
     if (groupsResult.error) throw new Error(groupsResult.error.message)
     if (membershipsResult.error) throw new Error(membershipsResult.error.message)
@@ -29,7 +29,7 @@ export const listStudyGroups = createServerFn({ method: 'GET' })
       ])
       return { ...group, joined: true, progress: progressResult.data, notes: notesResult.data ?? [] }
     }))
-    return { groups, enrolledSubjectIds: (enrollmentsResult.data ?? []).map((row) => row.subject_id) }
+    return { groups, enrolledSubjects: enrollmentsResult.data ?? [] }
   })
 
 export const createStudyGroup = createServerFn({ method: 'POST' })

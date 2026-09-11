@@ -7,6 +7,8 @@ import { getCatalog, openMaterial, type Subject } from '@/lib/catalog'
 import { getLearningSignals, type LearningPreferences } from '@/lib/learning-profile'
 import { coldStartSchema } from '@/lib/material-schemas'
 import { rankMaterials, type MaterialDoc } from '@/lib/recommendation'
+import { saveRecommendations } from '@/lib/activity.functions'
+import { useServerFn } from '@tanstack/react-start'
 import { MaterialCard } from '@/components/study/material-card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -26,6 +28,7 @@ export const Route = createFileRoute('/_authenticated/recommendations')({
 
 function Recommendations() {
   const { user } = Route.useRouteContext()
+  const saveRanked = useServerFn(saveRecommendations)
   const [items, setItems] = useState<MaterialDoc[]>([])
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [preferences, setPreferences] = useState<LearningPreferences>({})
@@ -37,6 +40,7 @@ function Recommendations() {
   useEffect(() => { void Promise.all([getCatalog(), getLearningSignals(user.id)]).then(([catalog, signals]) => { setItems(catalog.materials); setSubjects(catalog.subjects); setPreferences(signals.preferences); setEnrolled(signals.enrolled); setForm({ subjectId: signals.preferences.firstSubjectId ?? '', topic: signals.preferences.topic ?? '', goal: signals.preferences.goal ?? '' }) }) }, [tick, user.id])
   const ready = Boolean(preferences.firstSubjectId && preferences.topic && preferences.goal)
   const ranked = useMemo(() => rankMaterials(items, `${preferences.topic ?? ''} ${preferences.goal ?? ''}`, enrolled), [items, preferences, enrolled])
+  useEffect(() => { if (!ready || !ranked.length) return; void saveRanked({ data: { items: ranked.map((item) => ({ materialId: item.id, score: item.score, reason: item.reason })) } }).catch(() => undefined) }, [ready, ranked])
 
   async function savePreferences(event: React.FormEvent) {
     event.preventDefault()
