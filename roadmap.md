@@ -11,7 +11,7 @@
 - [x] Add first-subject, topic, and goal cold-start onboarding.
 - [ ] Send submission and decision emails after sender-domain setup.
 - [ ] Wire submission and decision email alerts after sender-domain setup.
-- [ ] Complete first-login onboarding and personalized recommendations.
-- [ ] Add admin material preview before review decisions.
-- [ ] Submit, approve, and verify a real material in the student catalog.
-- [ ] Add educator author profiles and link materials.
+- [x] Complete first-login onboarding and personalized recommendations.
+- [x] Add admin material preview before review decisions.
+- [x] Submit, approve, and verify a real material in the student catalog.
+- [x] Add educator author profiles and link materials.
