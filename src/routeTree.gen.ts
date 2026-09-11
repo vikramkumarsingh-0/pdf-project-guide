@@ -18,6 +18,7 @@ import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedRecommendationsRouteImport } from './routes/_authenticated/recommendations'
 import { Route as AuthenticatedSearchRouteImport } from './routes/_authenticated/search'
+import { Route as AuthenticatedSubmitRouteImport } from './routes/_authenticated/submit'
 import { Route as AuthenticatedAdminDashboardRouteImport } from './routes/_authenticated/admin.dashboard'
 import { Route as AuthenticatedAdminMaterialsRouteImport } from './routes/_authenticated/admin.materials'
 import { Route as AuthenticatedAdminReportsRouteImport } from './routes/_authenticated/admin.reports'
@@ -69,6 +70,11 @@ const AuthenticatedRecommendationsRoute =
 const AuthenticatedSearchRoute = AuthenticatedSearchRouteImport.update({
   id: '/search',
   path: '/search',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedSubmitRoute = AuthenticatedSubmitRouteImport.update({
+  id: '/submit',
+  path: '/submit',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedAdminDashboardRoute =
@@ -123,6 +129,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof AuthenticatedProfileRoute
   '/recommendations': typeof AuthenticatedRecommendationsRoute
   '/search': typeof AuthenticatedSearchRoute
+  '/submit': typeof AuthenticatedSubmitRoute
   '/admin/dashboard': typeof AuthenticatedAdminDashboardRoute
   '/admin/materials': typeof AuthenticatedAdminMaterialsRouteWithChildren
   '/admin/reports': typeof AuthenticatedAdminReportsRoute
@@ -140,6 +147,7 @@ export interface FileRoutesByTo {
   '/profile': typeof AuthenticatedProfileRoute
   '/recommendations': typeof AuthenticatedRecommendationsRoute
   '/search': typeof AuthenticatedSearchRoute
+  '/submit': typeof AuthenticatedSubmitRoute
   '/admin/dashboard': typeof AuthenticatedAdminDashboardRoute
   '/admin/materials': typeof AuthenticatedAdminMaterialsRouteWithChildren
   '/admin/reports': typeof AuthenticatedAdminReportsRoute
@@ -159,6 +167,7 @@ export interface FileRoutesById {
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/recommendations': typeof AuthenticatedRecommendationsRoute
   '/_authenticated/search': typeof AuthenticatedSearchRoute
+  '/_authenticated/submit': typeof AuthenticatedSubmitRoute
   '/_authenticated/admin/dashboard': typeof AuthenticatedAdminDashboardRoute
   '/_authenticated/admin/materials': typeof AuthenticatedAdminMaterialsRouteWithChildren
   '/_authenticated/admin/reports': typeof AuthenticatedAdminReportsRoute
@@ -178,6 +187,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/recommendations'
     | '/search'
+    | '/submit'
     | '/admin/dashboard'
     | '/admin/materials'
     | '/admin/reports'
@@ -195,6 +205,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/recommendations'
     | '/search'
+    | '/submit'
     | '/admin/dashboard'
     | '/admin/materials'
     | '/admin/reports'
@@ -213,6 +224,7 @@ export interface FileRouteTypes {
     | '/_authenticated/profile'
     | '/_authenticated/recommendations'
     | '/_authenticated/search'
+    | '/_authenticated/submit'
     | '/_authenticated/admin/dashboard'
     | '/_authenticated/admin/materials'
     | '/_authenticated/admin/reports'
@@ -294,6 +306,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSearchRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/submit': {
+      id: '/_authenticated/submit'
+      path: '/submit'
+      fullPath: '/submit'
+      preLoaderRoute: typeof AuthenticatedSubmitRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/dashboard': {
       id: '/_authenticated/admin/dashboard'
       path: '/admin/dashboard'
@@ -369,6 +388,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedRecommendationsRoute: typeof AuthenticatedRecommendationsRoute
   AuthenticatedSearchRoute: typeof AuthenticatedSearchRoute
+  AuthenticatedSubmitRoute: typeof AuthenticatedSubmitRoute
   AuthenticatedAdminDashboardRoute: typeof AuthenticatedAdminDashboardRoute
   AuthenticatedAdminMaterialsRoute: typeof AuthenticatedAdminMaterialsRouteWithChildren
   AuthenticatedAdminReportsRoute: typeof AuthenticatedAdminReportsRoute
@@ -382,6 +402,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedRecommendationsRoute: AuthenticatedRecommendationsRoute,
   AuthenticatedSearchRoute: AuthenticatedSearchRoute,
+  AuthenticatedSubmitRoute: AuthenticatedSubmitRoute,
   AuthenticatedAdminDashboardRoute: AuthenticatedAdminDashboardRoute,
   AuthenticatedAdminMaterialsRoute:
     AuthenticatedAdminMaterialsRouteWithChildren,
