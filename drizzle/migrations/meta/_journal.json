@@ -78,6 +78,13 @@
       "when": 1789909939311,
       "tag": "0010_set_primary_admin_email",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1789916127935,
+      "tag": "0011_primary_admin_also_student_and_educator",
+      "breakpoints": true
     }
   ]
 }
