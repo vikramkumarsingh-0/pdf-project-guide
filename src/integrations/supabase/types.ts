@@ -732,6 +732,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_primary_admin: { Args: never; Returns: boolean }
       get_study_group_member_activity: {
         Args: { _group_id: string }
         Returns: {
@@ -760,6 +761,7 @@ export type Database = {
         Args: { _group_id: string; _user_id: string }
         Returns: boolean
       }
+      primary_admin_email: { Args: never; Returns: string }
     }
     Enums: {
       app_role: "admin" | "student" | "teacher"
