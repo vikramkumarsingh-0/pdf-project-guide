@@ -85,6 +85,13 @@
       "when": 1789916127935,
       "tag": "0011_primary_admin_also_student_and_educator",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1789917892279,
+      "tag": "0012_set_primary_admin_email_shubhamkumari177",
+      "breakpoints": true
     }
   ]
 }
