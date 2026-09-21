@@ -92,6 +92,13 @@
       "when": 1789917892279,
       "tag": "0012_set_primary_admin_email_shubhamkumari177",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1789994553855,
+      "tag": "0013_add_ai_tutor_sessions",
+      "breakpoints": true
     }
   ]
 }

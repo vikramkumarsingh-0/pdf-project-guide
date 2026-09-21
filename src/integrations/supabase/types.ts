@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_tutor_sessions: {
+        Row: {
+          created_at: string
+          explanation: string
+          id: string
+          key_points: Json
+          practice: Json
+          question: string
+          source_excerpt: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          explanation: string
+          id?: string
+          key_points?: Json
+          practice?: Json
+          question: string
+          source_excerpt?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          explanation?: string
+          id?: string
+          key_points?: Json
+          practice?: Json
+          question?: string
+          source_excerpt?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       educator_access_requests: {
         Row: {
           affiliation: string
