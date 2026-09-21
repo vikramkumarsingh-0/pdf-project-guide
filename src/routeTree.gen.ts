@@ -32,7 +32,11 @@ import { Route as AuthenticatedAdminReportsRouteImport } from './routes/_authent
 import { Route as AuthenticatedAdminSubjectsRouteImport } from './routes/_authenticated/admin.subjects'
 import { Route as AuthenticatedEducatorIndexRouteImport } from './routes/_authenticated/educator.index'
 import { Route as AuthenticatedEducatorApplyRouteImport } from './routes/_authenticated/educator.apply'
+import { Route as AuthenticatedEducatorMaterialsRouteImport } from './routes/_authenticated/educator.materials'
+import { Route as AuthenticatedEducatorStudyPacksRouteImport } from './routes/_authenticated/educator.study-packs'
 import { Route as AuthenticatedMaterialsIdRouteImport } from './routes/_authenticated/materials.$id'
+import { Route as AuthenticatedStudyPacksIndexRouteImport } from './routes/_authenticated/study-packs/index'
+import { Route as AuthenticatedStudyPacksIdRouteImport } from './routes/_authenticated/study-packs/$id'
 import { Route as AuthenticatedAdminMaterialsNewRouteImport } from './routes/_authenticated/admin.materials.new'
 import { Route as AuthenticatedAdminMaterialsIdEditRouteImport } from './routes/_authenticated/admin.materials.$id.edit'
 
@@ -161,10 +165,34 @@ const AuthenticatedEducatorApplyRoute =
     path: '/educator/apply',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedEducatorMaterialsRoute =
+  AuthenticatedEducatorMaterialsRouteImport.update({
+    id: '/educator/materials',
+    path: '/educator/materials',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedEducatorStudyPacksRoute =
+  AuthenticatedEducatorStudyPacksRouteImport.update({
+    id: '/educator/study-packs',
+    path: '/educator/study-packs',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedMaterialsIdRoute =
   AuthenticatedMaterialsIdRouteImport.update({
     id: '/materials/$id',
     path: '/materials/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedStudyPacksIndexRoute =
+  AuthenticatedStudyPacksIndexRouteImport.update({
+    id: '/study-packs/',
+    path: '/study-packs/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedStudyPacksIdRoute =
+  AuthenticatedStudyPacksIdRouteImport.update({
+    id: '/study-packs/$id',
+    path: '/study-packs/$id',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAdminMaterialsNewRoute =
@@ -202,8 +230,12 @@ export interface FileRoutesByFullPath {
   '/admin/reports': typeof AuthenticatedAdminReportsRoute
   '/admin/subjects': typeof AuthenticatedAdminSubjectsRoute
   '/educator/apply': typeof AuthenticatedEducatorApplyRoute
+  '/educator/materials': typeof AuthenticatedEducatorMaterialsRoute
+  '/educator/study-packs': typeof AuthenticatedEducatorStudyPacksRoute
   '/materials/$id': typeof AuthenticatedMaterialsIdRoute
+  '/study-packs/$id': typeof AuthenticatedStudyPacksIdRoute
   '/educator/': typeof AuthenticatedEducatorIndexRoute
+  '/study-packs/': typeof AuthenticatedStudyPacksIndexRoute
   '/admin/materials/new': typeof AuthenticatedAdminMaterialsNewRoute
   '/admin/materials/$id/edit': typeof AuthenticatedAdminMaterialsIdEditRoute
 }
@@ -229,8 +261,12 @@ export interface FileRoutesByTo {
   '/admin/reports': typeof AuthenticatedAdminReportsRoute
   '/admin/subjects': typeof AuthenticatedAdminSubjectsRoute
   '/educator/apply': typeof AuthenticatedEducatorApplyRoute
+  '/educator/materials': typeof AuthenticatedEducatorMaterialsRoute
+  '/educator/study-packs': typeof AuthenticatedEducatorStudyPacksRoute
   '/materials/$id': typeof AuthenticatedMaterialsIdRoute
+  '/study-packs/$id': typeof AuthenticatedStudyPacksIdRoute
   '/educator': typeof AuthenticatedEducatorIndexRoute
+  '/study-packs': typeof AuthenticatedStudyPacksIndexRoute
   '/admin/materials/new': typeof AuthenticatedAdminMaterialsNewRoute
   '/admin/materials/$id/edit': typeof AuthenticatedAdminMaterialsIdEditRoute
 }
@@ -258,8 +294,12 @@ export interface FileRoutesById {
   '/_authenticated/admin/reports': typeof AuthenticatedAdminReportsRoute
   '/_authenticated/admin/subjects': typeof AuthenticatedAdminSubjectsRoute
   '/_authenticated/educator/apply': typeof AuthenticatedEducatorApplyRoute
+  '/_authenticated/educator/materials': typeof AuthenticatedEducatorMaterialsRoute
+  '/_authenticated/educator/study-packs': typeof AuthenticatedEducatorStudyPacksRoute
   '/_authenticated/materials/$id': typeof AuthenticatedMaterialsIdRoute
+  '/_authenticated/study-packs/$id': typeof AuthenticatedStudyPacksIdRoute
   '/_authenticated/educator/': typeof AuthenticatedEducatorIndexRoute
+  '/_authenticated/study-packs/': typeof AuthenticatedStudyPacksIndexRoute
   '/_authenticated/admin/materials/new': typeof AuthenticatedAdminMaterialsNewRoute
   '/_authenticated/admin/materials/$id/edit': typeof AuthenticatedAdminMaterialsIdEditRoute
 }
@@ -287,8 +327,12 @@ export interface FileRouteTypes {
     | '/admin/reports'
     | '/admin/subjects'
     | '/educator/apply'
+    | '/educator/materials'
+    | '/educator/study-packs'
     | '/materials/$id'
+    | '/study-packs/$id'
     | '/educator/'
+    | '/study-packs/'
     | '/admin/materials/new'
     | '/admin/materials/$id/edit'
   fileRoutesByTo: FileRoutesByTo
@@ -314,8 +358,12 @@ export interface FileRouteTypes {
     | '/admin/reports'
     | '/admin/subjects'
     | '/educator/apply'
+    | '/educator/materials'
+    | '/educator/study-packs'
     | '/materials/$id'
+    | '/study-packs/$id'
     | '/educator'
+    | '/study-packs'
     | '/admin/materials/new'
     | '/admin/materials/$id/edit'
   id:
@@ -342,8 +390,12 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/reports'
     | '/_authenticated/admin/subjects'
     | '/_authenticated/educator/apply'
+    | '/_authenticated/educator/materials'
+    | '/_authenticated/educator/study-packs'
     | '/_authenticated/materials/$id'
+    | '/_authenticated/study-packs/$id'
     | '/_authenticated/educator/'
+    | '/_authenticated/study-packs/'
     | '/_authenticated/admin/materials/new'
     | '/_authenticated/admin/materials/$id/edit'
   fileRoutesById: FileRoutesById
@@ -519,11 +571,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedEducatorApplyRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/educator/materials': {
+      id: '/_authenticated/educator/materials'
+      path: '/educator/materials'
+      fullPath: '/educator/materials'
+      preLoaderRoute: typeof AuthenticatedEducatorMaterialsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/educator/study-packs': {
+      id: '/_authenticated/educator/study-packs'
+      path: '/educator/study-packs'
+      fullPath: '/educator/study-packs'
+      preLoaderRoute: typeof AuthenticatedEducatorStudyPacksRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/materials/$id': {
       id: '/_authenticated/materials/$id'
       path: '/materials/$id'
       fullPath: '/materials/$id'
       preLoaderRoute: typeof AuthenticatedMaterialsIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/study-packs/': {
+      id: '/_authenticated/study-packs/'
+      path: '/study-packs'
+      fullPath: '/study-packs/'
+      preLoaderRoute: typeof AuthenticatedStudyPacksIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/study-packs/$id': {
+      id: '/_authenticated/study-packs/$id'
+      path: '/study-packs/$id'
+      fullPath: '/study-packs/$id'
+      preLoaderRoute: typeof AuthenticatedStudyPacksIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/materials/new': {
@@ -578,8 +658,12 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminReportsRoute: typeof AuthenticatedAdminReportsRoute
   AuthenticatedAdminSubjectsRoute: typeof AuthenticatedAdminSubjectsRoute
   AuthenticatedEducatorApplyRoute: typeof AuthenticatedEducatorApplyRoute
+  AuthenticatedEducatorMaterialsRoute: typeof AuthenticatedEducatorMaterialsRoute
+  AuthenticatedEducatorStudyPacksRoute: typeof AuthenticatedEducatorStudyPacksRoute
   AuthenticatedMaterialsIdRoute: typeof AuthenticatedMaterialsIdRoute
+  AuthenticatedStudyPacksIdRoute: typeof AuthenticatedStudyPacksIdRoute
   AuthenticatedEducatorIndexRoute: typeof AuthenticatedEducatorIndexRoute
+  AuthenticatedStudyPacksIndexRoute: typeof AuthenticatedStudyPacksIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -601,8 +685,12 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminReportsRoute: AuthenticatedAdminReportsRoute,
   AuthenticatedAdminSubjectsRoute: AuthenticatedAdminSubjectsRoute,
   AuthenticatedEducatorApplyRoute: AuthenticatedEducatorApplyRoute,
+  AuthenticatedEducatorMaterialsRoute: AuthenticatedEducatorMaterialsRoute,
+  AuthenticatedEducatorStudyPacksRoute: AuthenticatedEducatorStudyPacksRoute,
   AuthenticatedMaterialsIdRoute: AuthenticatedMaterialsIdRoute,
+  AuthenticatedStudyPacksIdRoute: AuthenticatedStudyPacksIdRoute,
   AuthenticatedEducatorIndexRoute: AuthenticatedEducatorIndexRoute,
+  AuthenticatedStudyPacksIndexRoute: AuthenticatedStudyPacksIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

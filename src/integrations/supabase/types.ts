@@ -346,6 +346,7 @@ export type Database = {
           submitted_at: string
           tags: string[]
           title: string
+          topics: string[]
           type: Database["public"]["Enums"]["material_type"]
           updated_at: string
           uploaded_by: string | null
@@ -371,6 +372,7 @@ export type Database = {
           submitted_at?: string
           tags?: string[]
           title: string
+          topics?: string[]
           type: Database["public"]["Enums"]["material_type"]
           updated_at?: string
           uploaded_by?: string | null
@@ -396,6 +398,7 @@ export type Database = {
           submitted_at?: string
           tags?: string[]
           title?: string
+          topics?: string[]
           type?: Database["public"]["Enums"]["material_type"]
           updated_at?: string
           uploaded_by?: string | null
@@ -718,6 +721,181 @@ export type Database = {
           },
         ]
       }
+      study_pack_assignments: {
+        Row: {
+          assigned_at: string
+          assigned_by: string
+          id: string
+          pack_id: string
+          student_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by: string
+          id?: string
+          pack_id: string
+          student_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string
+          id?: string
+          pack_id?: string
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "study_pack_assignments_pack_id_fkey"
+            columns: ["pack_id"]
+            isOneToOne: false
+            referencedRelation: "study_packs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      study_pack_card_progress: {
+        Row: {
+          card_id: string
+          id: string
+          known: boolean
+          pack_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          card_id: string
+          id?: string
+          known?: boolean
+          pack_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          card_id?: string
+          id?: string
+          known?: boolean
+          pack_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "study_pack_card_progress_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "study_pack_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "study_pack_card_progress_pack_id_fkey"
+            columns: ["pack_id"]
+            isOneToOne: false
+            referencedRelation: "study_packs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      study_pack_cards: {
+        Row: {
+          answer: string
+          created_at: string
+          id: string
+          pack_id: string
+          position: number
+          question: string
+        }
+        Insert: {
+          answer: string
+          created_at?: string
+          id?: string
+          pack_id: string
+          position?: number
+          question: string
+        }
+        Update: {
+          answer?: string
+          created_at?: string
+          id?: string
+          pack_id?: string
+          position?: number
+          question?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "study_pack_cards_pack_id_fkey"
+            columns: ["pack_id"]
+            isOneToOne: false
+            referencedRelation: "study_packs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      study_packs: {
+        Row: {
+          author_id: string | null
+          created_at: string
+          description: string
+          file_name: string | null
+          file_path: string | null
+          id: string
+          kind: string
+          notes: string
+          owner_id: string
+          status: string
+          subject_id: string | null
+          title: string
+          topics: string[]
+          updated_at: string
+        }
+        Insert: {
+          author_id?: string | null
+          created_at?: string
+          description?: string
+          file_name?: string | null
+          file_path?: string | null
+          id?: string
+          kind?: string
+          notes?: string
+          owner_id: string
+          status?: string
+          subject_id?: string | null
+          title: string
+          topics?: string[]
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string | null
+          created_at?: string
+          description?: string
+          file_name?: string | null
+          file_path?: string | null
+          id?: string
+          kind?: string
+          notes?: string
+          owner_id?: string
+          status?: string
+          subject_id?: string | null
+          title?: string
+          topics?: string[]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "study_packs_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "material_authors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "study_packs_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subjects: {
         Row: {
           category: string
@@ -768,6 +946,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_access_study_pack: {
+        Args: { _pack_id: string; _user_id: string }
+        Returns: boolean
+      }
       claim_primary_admin: { Args: never; Returns: boolean }
       get_study_group_member_activity: {
         Args: { _group_id: string }
@@ -795,6 +977,10 @@ export type Database = {
       }
       is_study_group_member: {
         Args: { _group_id: string; _user_id: string }
+        Returns: boolean
+      }
+      owns_study_pack: {
+        Args: { _pack_id: string; _user_id: string }
         Returns: boolean
       }
       primary_admin_email: { Args: never; Returns: string }

@@ -99,6 +99,13 @@
       "when": 1789994553855,
       "tag": "0013_add_ai_tutor_sessions",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1789995887360,
+      "tag": "0014_add_study_packs",
+      "breakpoints": true
     }
   ]
 }
