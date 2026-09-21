@@ -1,0 +1,634 @@
+# StudyFlow AI — Comprehensive Project Report
+
+Prepared for: Shubham Kumari (kumarishubham177@gmail.com)
+Project: StudyFlow AI — AI-powered study material recommender and learning platform
+Date: 21 September 2026
+
+---
+
+## 1. Executive Summary
+
+StudyFlow AI is a full-stack learning platform that connects three kinds of people:
+
+- **Students** — get personalised material recommendations, an AI tutor grounded in their own lecture notes, flashcard study packs, search, ratings and a learning history.
+- **Educators / Teachers** — upload course material, tag topics, create and publish study packs, and track student progress.
+- **Administrators** — review a submission queue, approve or reject materials with reasons, manage subjects and authors, and read analytics and feedback reports.
+
+Everything runs on one codebase: a TanStack Start (React 19) front end, server functions running at the edge, and a PostgreSQL database with row-level security.
+
+---
+
+## 2. Architecture Overview
+
+```
+┌────────────────────────────────────────────────────────┐
+│  CLIENT  — React 19 + TanStack Router + Tailwind v4    │
+│  routes/, components/study/, shadcn-ui                 │
+└──────────────────────────┬─────────────────────────────┘
+                           │ typed RPC (createServerFn)
+┌──────────────────────────▼─────────────────────────────┐
+│  EDGE SERVER — TanStack Start server functions         │
+│  Zod validation · Supabase auth middleware             │
+│  Lovable AI Gateway (openai/gpt-6-astra)               │
+└──────────────────────────┬─────────────────────────────┘
+                           │ SQL over HTTPS (RLS enforced)
+┌──────────────────────────▼─────────────────────────────┐
+│  DATABASE — PostgreSQL                                 │
+│  tables + enums · RLS policies · SECURITY DEFINER fns  │
+│  storage bucket: study-materials (private)             │
+└────────────────────────────────────────────────────────┘
+```
+
+**Three security layers:** the browser client never holds a privileged key; server functions verify the signed-in user; the database refuses any row the user is not allowed to see.
+
+---
+
+## 3. Tools and Technologies Used
+
+| Tool | Role in this project |
+|---|---|
+| **TanStack Start v1** | Full-stack React framework. Gives file-based routing, server-side rendering and `createServerFn` typed server calls. |
+| **React 19** | UI layer with concurrent rendering and async actions. |
+| **Vite 7** | Build tool and dev server (hot reload at localhost:8080). |
+| **TanStack Router** | Type-safe file routes in `src/routes/`; `_authenticated/` subtree gates signed-in pages. |
+| **TanStack Query** | Caching and refetching of server data. |
+| **PostgreSQL (Lovable Cloud / Supabase)** | Relational database, authentication, and private file storage. |
+| **Row-Level Security (RLS)** | Per-row access rules enforced by the database itself. |
+| **Drizzle ORM + drizzle-kit** | Migration tooling; SQL migrations live in `drizzle/migrations/`. |
+| **Tailwind CSS v4** | Styling through design tokens in `src/styles.css`. |
+| **shadcn/ui + Radix UI** | Accessible component primitives (dialog, tabs, select, toast…). |
+| **Vercel AI SDK (`ai`, `@ai-sdk/openai`)** | Streaming, schema-constrained model calls. |
+| **Lovable AI Gateway** | Model access (`openai/gpt-6-astra`) without managing a provider key. |
+| **Zod** | Runtime validation of every server-function input. |
+| **Sonner** | Toast notifications. |
+| **Recharts** | Admin analytics charts. |
+| **Vitest** | Unit tests for access control and the recommendation engine. |
+| **Playwright** | End-to-end walkthroughs of sign-up, educator and admin flows. |
+| **Lucide React** | Icon set. |
+
+---
+
+## 4. Database Creation
+
+The schema is created by plain SQL migration files, applied in numeric order. Migration `0000_studyflow_core_schema.sql` establishes the foundation.
+
+### 4.1 Enumerated types
+
+```sql
+CREATE TYPE public.app_role      AS ENUM ('admin','student');   -- 'teacher' added in 0006
+CREATE TYPE public.material_type AS ENUM ('PDF','Video','Article');
+-- added in 0001:
+CREATE TYPE public.material_approval_status AS ENUM ('pending','approved','rejected');
+```
+
+> Note: `material_type` accepts **only** `PDF`, `Video`, `Article`. Any other literal (e.g. `'Book'`) raises `22P02: invalid input value for enum material_type`.
+
+### 4.2 Profiles table
+
+```sql
+CREATE TABLE public.profiles (
+  id uuid PRIMARY KEY,
+  name text NOT NULL CHECK (char_length(name) BETWEEN 2 AND 80),
+  email text NOT NULL,
+  preferences jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+GRANT SELECT,INSERT,UPDATE ON public.profiles TO authenticated;
+GRANT ALL ON public.profiles TO service_role;
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "profiles self select" ON public.profiles
+  FOR SELECT TO authenticated USING (auth.uid() = id);
+CREATE POLICY "profiles self insert" ON public.profiles
+  FOR INSERT TO authenticated WITH CHECK (auth.uid() = id);
+CREATE POLICY "profiles self update" ON public.profiles
+  FOR UPDATE TO authenticated USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
+```
+
+Every table follows the same four-step order: **CREATE TABLE → GRANT → ENABLE RLS → CREATE POLICY**. Without the `GRANT`, the API returns a permission error even when policies exist.
+
+### 4.3 Roles — stored in their own table (never on the profile)
+
+```sql
+CREATE TABLE public.user_roles (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  role public.app_role NOT NULL DEFAULT 'student',
+  UNIQUE (user_id, role)
+);
+
+GRANT SELECT ON public.user_roles TO authenticated;
+GRANT ALL ON public.user_roles TO service_role;
+ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "roles self select" ON public.user_roles
+  FOR SELECT TO authenticated USING (auth.uid() = user_id);
+```
+
+Keeping roles in a separate table prevents privilege-escalation: a user can update their own profile, but cannot write their own role row.
+
+### 4.4 The `has_role` function (breaks RLS recursion)
+
+```sql
+CREATE OR REPLACE FUNCTION public.has_role(_user_id uuid, _role public.app_role)
+RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $$ SELECT EXISTS (
+  SELECT 1 FROM public.user_roles WHERE user_id = _user_id AND role = _role
+) $$;
+
+GRANT EXECUTE ON FUNCTION public.has_role(uuid, public.app_role) TO authenticated;
+```
+
+`SECURITY DEFINER` makes the function run with the owner's rights, so a policy that calls it does not re-trigger RLS on `user_roles` — this is what avoids "infinite recursion detected in policy".
+
+### 4.5 Subjects and materials
+
+```sql
+CREATE TABLE public.subjects (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL UNIQUE,
+  category text NOT NULL,
+  description text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+GRANT SELECT ON public.subjects TO anon, authenticated;
+ALTER TABLE public.subjects ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "subjects public read" ON public.subjects
+  FOR SELECT TO anon, authenticated USING (true);
+CREATE POLICY "subjects admin write" ON public.subjects
+  FOR ALL TO authenticated
+  USING (public.has_role(auth.uid(),'admin'))
+  WITH CHECK (public.has_role(auth.uid(),'admin'));
+
+CREATE TABLE public.materials (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  title text NOT NULL CHECK (char_length(title) BETWEEN 3 AND 160),
+  description text NOT NULL CHECK (char_length(description) BETWEEN 20 AND 1200),
+  subject_id uuid NOT NULL REFERENCES public.subjects(id) ON DELETE RESTRICT,
+  type public.material_type NOT NULL,
+  url text NOT NULL,
+  tags text[] NOT NULL DEFAULT '{}',
+  uploaded_by uuid,
+  average_rating numeric(3,2) NOT NULL DEFAULT 0,
+  rating_count integer NOT NULL DEFAULT 0,
+  view_count integer NOT NULL DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+```
+
+Migration `0001` then adds `approval_status`, `submitted_at`, `reviewed_at`, `reviewed_by` and `rejection_reason`.
+
+### 4.6 Full table inventory
+
+| Table | Purpose |
+|---|---|
+| `profiles` | Display name, email, preferences. |
+| `user_roles` | admin / teacher / student grants. |
+| `subjects` | Course subjects (8 seeded). |
+| `materials` | Learning resources with approval workflow. |
+| `material_authors` | Author/educator public profiles (`name`, `affiliation`, `biography`, `expertise`). |
+| `enrollments` | Which subjects a student follows. |
+| `ratings` | 1–5 star reviews; a trigger recomputes `average_rating`. |
+| `material_views` | View tracking for popularity. |
+| `search_logs` | Search terms, feeding the interest profile. |
+| `recommendations` | Cached ranked results per user. |
+| `material_feedback` | Student feedback surfaced in admin reports. |
+| `material_edit_requests` | Educator-proposed edits awaiting review. |
+| `study_groups` / memberships | Cohort grouping and shared progress. |
+| `educator_accounts` | Links an auth user to a `material_authors` row. |
+| `educator_material_topics` | Per-resource topic tagging by educators. |
+| `study_packs` | Note-based packs (`kind`: personal/course, `status`: draft/published). |
+| `study_pack_cards` | Flashcards (`question`, `answer`, `position`). |
+| `study_pack_assignments` | Packs assigned to students. |
+| `ai_tutor_sessions` | Saved tutor explanations and practice questions. |
+
+---
+
+## 5. Migrations
+
+Migrations are immutable, numbered SQL files applied in order. Nothing is edited in place; every change is a new file.
+
+| File | What it does |
+|---|---|
+| `0000_studyflow_core_schema.sql` | Enums, profiles, roles, `has_role`, subjects, enrollments, materials, ratings, views, search logs, recommendations, sign-up trigger. |
+| `0001_add_material_approval_workflow.sql` | Adds `approval_status`, `submitted_at`, `rejection_reason`; catalog reads become approved-only. |
+| `0002_harden_material_approval.sql` | Revokes direct EXECUTE on internal functions from `anon`/`authenticated`. |
+| `0003_add_material_file_metadata_and_storage_policies.sql` | `file_path`, `file_name`, `file_mime_type`, `file_size_bytes`; storage policies for the private bucket. |
+| `0004_add_material_authors.sql` | Author profiles and `author_id` on materials. |
+| `0005_add_study_groups_and_material_feedback.sql` | Study groups, memberships, feedback table. |
+| `0006_add_teacher_role.sql` | Adds `'teacher'` to the `app_role` enum. |
+| `0007_add_educator_portal_and_group_progress.sql` | `educator_accounts`, `educator_material_topics`, group progress views. |
+| `0008_add_material_edit_requests.sql` | Educator edit-request workflow. |
+| `0009_educator_can_view_shares_of_own_materials.sql` | Extra read policy for educators. |
+| `0010` – `0012` | Successive primary-admin email changes. |
+| `0013_add_ai_tutor_sessions.sql` | Stores tutor sessions per user. |
+| `0014_add_study_packs.sql` | `study_packs`, `study_pack_cards`, `study_pack_assignments`. |
+| `0015_fix_study_pack_read_policies.sql` | Inlines the access check to remove policy recursion. |
+| `0016_set_primary_admin_email_kumarishubham177.sql` | Current admin identity + role/educator provisioning. |
+
+---
+
+## 6. Data Seeding
+
+Seeding is **idempotent**: re-running the script never duplicates rows. The pattern is a `VALUES` CTE joined to `subjects` and `material_authors` by name, guarded by `WHERE NOT EXISTS`.
+
+```sql
+WITH new_materials (title, type, description, url, tags, topics,
+                    approval_status, rejection_reason, subject_name, author_name) AS (
+  VALUES
+    ('Neural Networks and Deep Learning',
+     'Article'::public.material_type,
+     'Online textbook explaining backpropagation, convolutional layers and gradient descent.',
+     'http://neuralnetworksanddeeplearning.com',
+     ARRAY['deep-learning','neural-networks','math']::text[],
+     ARRAY[]::text[],
+     'approved'::public.material_approval_status, NULL,
+     'Machine Learning', 'Andrew Ng')
+    -- … 60+ further rows …
+)
+INSERT INTO public.materials
+  (title, type, description, url, tags, topics,
+   approval_status, rejection_reason, subject_id, author_id)
+SELECT v.title, v.type, v.description, v.url, v.tags, v.topics,
+       v.approval_status, v.rejection_reason, s.id, a.id
+FROM new_materials v
+JOIN public.subjects s            ON s.name = v.subject_name
+LEFT JOIN public.material_authors a ON a.name = v.author_name
+WHERE NOT EXISTS (
+  SELECT 1 FROM public.materials m WHERE m.title = v.title
+);
+```
+
+Key rules learned while seeding:
+
+1. Cast enum literals explicitly (`'Article'::public.material_type`) and use only `PDF | Video | Article`.
+2. The table is `public.materials`, **not** `public.study_materials`.
+3. `material_authors` uses the column `biography`, not `bio`.
+4. `study_packs` has no `level` column; flashcards use `question`, `answer`, `position`.
+
+A `DO $$ … $$` block seeds the starter study pack "Neural network fundamentals" with eight flashcards, again only if it does not already exist.
+
+**Current managed database contents:** 8 subjects, 12 authors, 94 materials (62 approved / 2 pending / 2 rejected among the original set), 2 study packs, 16 flashcards, 6 ratings.
+
+---
+
+## 7. Sign-Up — How It Works
+
+### 7.1 The client side (`src/routes/register.tsx`)
+
+```ts
+const { data, error } = await supabase.auth.signUp({
+  email,
+  password,
+  options: { data: { name } },
+});
+if (error) { toast.error(error.message); return; }
+
+const userId = data.user?.id;
+if (userId && data.session && selected.length) {
+  await supabase.from('enrollments')
+    .insert(selected.map(subject_id => ({ user_id: userId, subject_id })));
+} else if (selected.length) {
+  localStorage.setItem('sf_pending_subjects', JSON.stringify(selected));
+}
+
+if (data.session) await supabase.rpc('claim_primary_admin');
+toast.success(data.session ? 'Account created' : 'Check your email to confirm your account');
+nav({ to: data.session ? '/onboarding' : '/login' });
+```
+
+Password minimum is 8 characters; chosen subjects are stored locally when e-mail confirmation is still pending, then applied after the first sign-in.
+
+### 7.2 The database trigger
+
+The moment a row lands in `auth.users`, the profile and default role are created automatically:
+
+```sql
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+BEGIN
+  INSERT INTO public.profiles(id, name, email)
+  VALUES (
+    NEW.id,
+    COALESCE(NEW.raw_user_meta_data->>'name', split_part(NEW.email,'@',1)),
+    COALESCE(NEW.email,'')
+  );
+  INSERT INTO public.user_roles(user_id, role) VALUES (NEW.id, 'student');
+  RETURN NEW;
+END $$;
+
+CREATE TRIGGER on_auth_user_created
+AFTER INSERT ON auth.users
+FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+```
+
+Every new account is therefore a **student** by default — no one can self-assign a higher role.
+
+---
+
+## 8. Sign-In — How It Works
+
+`src/routes/login.tsx`:
+
+```ts
+const { error } = await supabase.auth.signInWithPassword({ email, password });
+if (!error) await supabase.rpc('claim_primary_admin');
+if (error) { toast.error(error.message); return; }
+toast.success('Welcome back');
+nav({ to: '/dashboard' });
+```
+
+Google sign-in:
+
+```ts
+const r = await lovable.auth.signInWithOAuth('google', {
+  redirect_uri: window.location.origin,
+});
+```
+
+The redirect target is the site origin, never a protected page — the session must hydrate before any guarded route loads.
+
+Protected pages live under `src/routes/_authenticated/`, whose layout route redirects signed-out visitors to the login page before any data loader runs.
+
+---
+
+## 9. How the Administrator Is Created
+
+There is **no admin sign-up form** — that would be a security hole. Admin rights are granted by the database to one known e-mail address.
+
+### 9.1 The identity function
+
+```sql
+CREATE OR REPLACE FUNCTION public.primary_admin_email()
+RETURNS text LANGUAGE sql IMMUTABLE
+AS $$ SELECT 'kumarishubham177@gmail.com'::text $$;
+
+GRANT EXECUTE ON FUNCTION public.primary_admin_email() TO authenticated, anon;
+GRANT EXECUTE ON FUNCTION public.claim_primary_admin() TO authenticated;
+```
+
+### 9.2 Provisioning block (migration 0016)
+
+```sql
+DO $do$
+DECLARE _uid uuid; _name text; _author_id uuid;
+BEGIN
+  SELECT id INTO _uid FROM auth.users
+   WHERE lower(email) = lower('kumarishubham177@gmail.com') LIMIT 1;
+
+  IF _uid IS NOT NULL THEN
+    INSERT INTO public.user_roles(user_id, role) VALUES (_uid,'admin')
+      ON CONFLICT (user_id, role) DO NOTHING;
+    INSERT INTO public.user_roles(user_id, role) VALUES (_uid,'student')
+      ON CONFLICT (user_id, role) DO NOTHING;
+    INSERT INTO public.user_roles(user_id, role) VALUES (_uid,'teacher')
+      ON CONFLICT (user_id, role) DO NOTHING;
+
+    -- revoke admin from anyone else
+    DELETE FROM public.user_roles r USING auth.users u
+     WHERE r.user_id = u.id AND r.role = 'admin'
+       AND lower(u.email) IS DISTINCT FROM lower('kumarishubham177@gmail.com');
+
+    -- create the matching educator/author profile once
+    SELECT author_id INTO _author_id FROM public.educator_accounts WHERE user_id = _uid;
+    IF _author_id IS NULL THEN
+      SELECT coalesce(nullif(trim(name),''),'Shubham Kumari') INTO _name
+        FROM public.profiles WHERE id = _uid;
+
+      INSERT INTO public.material_authors(name, affiliation, biography, expertise)
+      VALUES (coalesce(_name,'Shubham Kumari'), 'StudyFlow AI',
+              'Platform administrator, student, and educator.',
+              ARRAY['Artificial Intelligence','Machine Learning'])
+      RETURNING id INTO _author_id;
+
+      INSERT INTO public.educator_accounts(user_id, author_id, linked_by)
+      VALUES (_uid, _author_id, _uid) ON CONFLICT (user_id) DO NOTHING;
+    END IF;
+  END IF;
+END $do$;
+```
+
+`claim_primary_admin()` is the `SECURITY DEFINER` version of the same logic, called after every sign-in so the roles exist even if the account was created after the migration ran.
+
+**Result:** one sign-in with `kumarishubham177@gmail.com` gives access to the Admin Console (`/admin/dashboard`), the Educator Portal (`/educator`) and the Student Dashboard (`/dashboard`) with the same password.
+
+---
+
+## 10. The Recommendation Engine
+
+File: `src/lib/recommendation.ts` — a dependency-free TF / cosine-similarity ranker.
+
+```ts
+export const tokenize = (text: string) =>
+  text.toLowerCase().replace(/[^a-z0-9\s-]/g, ' ').split(/\s+/)
+      .filter(x => x.length > 1 && !STOP.has(x));
+
+export function cosineSimilarity(a: Map<string, number>, b: Map<string, number>) {
+  const keys = new Set([...a.keys(), ...b.keys()]);
+  let dot = 0, aa = 0, bb = 0;
+  keys.forEach(k => {
+    const x = a.get(k) || 0, y = b.get(k) || 0;
+    dot += x * y; aa += x * x; bb += y * y;
+  });
+  return aa && bb ? dot / (Math.sqrt(aa) * Math.sqrt(bb)) : 0;
+}
+
+export function rankMaterials(materials, profileText, enrolled = []) {
+  const q = tf(tokenize(profileText));
+  return materials.map(material => {
+    const subject = material.subjects?.name || '';
+    const content = cosineSimilarity(
+      q,
+      tf(tokenize(`${material.title} ${material.description} ${subject} ${material.tags.join(' ')}`))
+    );
+    const subjectScore = enrolled.includes(material.subject_id) ? 1 : 0;
+    const rating       = Math.min(1, Number(material.average_rating) / 5);
+    const popularity   = Math.min(1, material.rating_count / 25);
+
+    const score = Math.min(1,
+      content * 0.50 +
+      (rating * 0.7 + popularity * 0.3) * 0.25 +
+      subjectScore * 0.15 +
+      rating * 0.10);
+
+    const reason =
+      content > 0.25   ? 'Matches your recent interests'
+      : subjectScore   ? 'Recommended for an enrolled subject'
+      : rating > 0.82  ? 'Highly rated by students'
+      : 'Popular learning resource';
+
+    return { ...material, score, reason };
+  }).sort((a, b) => b.score - a.score).slice(0, 10);
+}
+```
+
+**Weighting:** 50 % content similarity, 25 % quality/popularity blend, 15 % enrolled-subject boost, 10 % rating quality. Every result carries a human-readable `reason`, so recommendations are explainable rather than a black box. Cold-start users are handled by the onboarding questionnaire, which supplies the initial `profileText`.
+
+---
+
+## 11. The AI Tutor
+
+File: `src/lib/ai-tutor.functions.ts`. This runs on the server only; the model key never reaches the browser.
+
+```ts
+const tutorInputSchema = z.object({
+  title: z.string().trim().min(3).max(120),
+  question: z.string().trim().min(5).max(2000),
+  material: z.string().trim().max(20000).optional().default(''),
+  level: z.enum(['beginner','intermediate','advanced']).default('intermediate'),
+});
+
+const tutorOutputSchema = z.object({
+  explanation: z.string(),
+  keyPoints: z.array(z.string()),
+  practice: z.array(z.object({
+    question: z.string(), options: z.array(z.string()),
+    answer: z.string(),   why: z.string(),
+  })),
+});
+
+export const generateTutorSession = createServerFn({ method: 'POST' })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => tutorInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const apiKey = process.env['LOVABLE_API_KEY'];
+    if (!apiKey) throw new Error('AI is not configured for this app yet.');
+
+    const lovable = createOpenAI({
+      baseURL: 'https://ai.gateway.lovable.dev/v1',
+      apiKey,
+      headers: { 'Lovable-API-Key': apiKey, 'X-Lovable-AIG-SDK': 'vercel-ai-sdk' },
+    });
+
+    const source = data.material
+      ? `Course material provided by the student:\n"""\n${data.material.slice(0,20000)}\n"""`
+      : 'The student did not upload course material; rely on well-established knowledge.';
+
+    const result = streamText({
+      model: lovable.responses('openai/gpt-6-astra'),
+      output: Output.object({ schema: tutorOutputSchema }),
+      system:
+        'You are StudyFlow AI, a patient study tutor. Write a clear, personalized explanation ' +
+        'at the requested level, then 4 multiple-choice practice questions with exactly 4 options ' +
+        'each, the correct option repeated verbatim in "answer", and a one-sentence "why". ' +
+        'Ground everything in the provided material when it exists. Keep the explanation under 400 words.',
+      prompt: `Student level: ${data.level}\nStudy request: ${data.question}\n\n${source}`,
+    });
+
+    const output = await result.output;   // validated against the schema
+
+    await context.supabase.from('ai_tutor_sessions').insert({
+      user_id: context.userId,
+      title: data.title,
+      question: data.question,
+      source_excerpt: data.material ? data.material.slice(0, 4000) : null,
+      explanation: output.explanation,
+      key_points: output.keyPoints,
+      practice: output.practice,
+    });
+    return output;
+  });
+```
+
+Notable design points:
+
+- `requireSupabaseAuth` middleware rejects anonymous calls with 401 before any model spend.
+- `Output.object({ schema })` forces the model to return valid JSON matching the Zod schema — no fragile text parsing.
+- Errors are translated into plain language: HTTP 402 becomes "out of AI credits", 429 becomes "the AI service is busy".
+- Every session is stored, so students can reopen previous explanations and practice sets.
+
+---
+
+## 12. Educator Portal and Study Packs
+
+- `src/lib/educators.functions.ts` — `submitEducatorMaterial` (creates a material in `pending` state) and `setMaterialTopics` (per-resource topic tags).
+- `src/lib/study-packs.functions.ts` — `saveStudyPack` and `generateStudyPackCards`, which turns pasted or uploaded notes into flashcards using the same gateway model.
+- Routes: `/educator`, `/educator/materials`, `/educator/study-packs`, `/educator/apply`, `/study-packs`, `/study-packs/$id`.
+- Teachers create a pack, publish it (`status = 'published'`, `kind = 'course'`), assign it to students, and see per-student progress.
+
+### Study-pack access rules (migration 0015)
+
+The original policy referenced `study_pack_assignments`, which in turn referenced `study_packs`, causing "infinite recursion detected in policy". The fix inlines the check and keeps each policy one level deep:
+
+```sql
+CREATE POLICY "Read accessible study packs" ON public.study_packs
+FOR SELECT TO authenticated
+USING (
+  owner_id = auth.uid()
+  OR (status = 'published' AND kind = 'course')
+  OR EXISTS (SELECT 1 FROM public.study_pack_assignments a
+              WHERE a.pack_id = study_packs.id AND a.student_id = auth.uid())
+  OR public.has_role(auth.uid(), 'admin')
+);
+```
+
+---
+
+## 13. Administration Console
+
+| Route | Function |
+|---|---|
+| `/admin/dashboard` | Platform metrics: users, materials, ratings, pending queue depth. |
+| `/admin/materials` | Approval queue — approve, or reject with a written reason shown back to the submitter. |
+| `/admin/materials/new`, `/admin/materials/$id/edit` | Direct authoring and editing. |
+| `/admin/subjects` | Subject catalogue management. |
+| `/admin/authors` | Author profiles, affiliations, expertise. |
+| `/admin/educators` | Approve educator applications, link accounts to author profiles. |
+| `/admin/reports` | Student feedback, ratings distribution, CSV export. |
+
+Access is enforced twice: `admin-guard.tsx` hides the UI, and every admin policy in the database calls `has_role(auth.uid(),'admin')`.
+
+---
+
+## 14. Testing and Verification
+
+- `src/lib/recommendation.test.ts` — verifies tokenisation, cosine similarity bounds, and ranking order.
+- `src/lib/access-control.test.ts` — verifies role gating (one assertion currently failing and pending a fix).
+- Run with `bunx vitest run`.
+- Type checking with `bunx tsgo --noEmit` passes.
+- End-to-end flows verified with Playwright: sign-up → e-mail confirmation → onboarding → recommendations → study pack → AI tutor; educator submission and admin approval; admin/educator/student sign-in with a single account.
+
+---
+
+## 15. Deployment and Environments
+
+**Managed preview environment (this workspace).** Configured automatically; the environment file is generated and cannot be pointed at another database.
+
+**Your own external database.** For local runs or hosting on Vercel / Netlify / Cloudflare:
+
+```bash
+VITE_SUPABASE_URL=https://alvdujaswzlgvxriepoo.supabase.co
+VITE_SUPABASE_ANON_KEY=sb_publishable_bB5k0OjC99V5TAuKUcrMBg_y_b8hJ3t
+```
+
+Status of that external project:
+
+| Item | Status |
+|---|---|
+| Schema (migrations 0000–0016) | Applied |
+| Admin account `kumarishubham177@gmail.com` | Created and confirmed |
+| Roles admin / teacher / student | Granted |
+| Materials seeded | 94 rows |
+| Private `study-materials` bucket | Exists |
+| Study-pack RLS fix + starter pack insert | **Still to run** |
+
+Source code and all migration files are committed to Git and pushed to the connected GitHub repository. Database rows and storage files live in the database itself, not in Git.
+
+---
+
+## 16. Next Steps
+
+1. **Run the study-pack policy fix** on the external database (migration `0015` SQL plus the starter-pack `DO` block) — until then, pack reads there return a recursion error.
+2. **Fix the failing access-control test** so the suite is fully green.
+3. **Enable e-mail alerts.** Submission and approval notifications are built but dormant: they need a verified sender domain before mail can be delivered to real inboxes.
+4. **Publish the app** to get a public address for the admin, educator and student areas.
+5. **Optional enhancements:** spaced-repetition scheduling for flashcards, per-cohort analytics exports, and semantic (embedding-based) search to complement the keyword recommender.
+
+---
+
+*End of report.*
