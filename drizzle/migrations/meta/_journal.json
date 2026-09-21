@@ -106,6 +106,13 @@
       "when": 1789995887360,
       "tag": "0014_add_study_packs",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1789996748009,
+      "tag": "0015_fix_study_pack_read_policies",
+      "breakpoints": true
     }
   ]
 }
