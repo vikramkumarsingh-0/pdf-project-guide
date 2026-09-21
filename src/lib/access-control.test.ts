@@ -64,13 +64,13 @@ describe('primary account access', () => {
   it('reaches admin-only data (educator applications and accounts)', async () => {
     const requests = await admin.from('educator_access_requests').select('id').limit(1)
     expect(requests.error).toBeNull()
-    const accounts = await admin.from('educator_accounts').select('id').limit(1)
+    const accounts = await admin.from('educator_accounts').select('user_id').limit(1)
     expect(accounts.error).toBeNull()
   })
 
   it('has an educator profile backing the educator portal', async () => {
     const { data } = await admin.auth.getUser()
-    const { data: rows, error } = await admin.from('educator_accounts').select('id').eq('user_id', data.user!.id)
+    const { data: rows, error } = await admin.from('educator_accounts').select('user_id').eq('user_id', data.user!.id)
     expect(error).toBeNull()
     expect(rows?.length ?? 0).toBeGreaterThan(0)
   })
