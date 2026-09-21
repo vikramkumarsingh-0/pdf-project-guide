@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as EducatorSignupRouteImport } from './routes/educator-signup'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as RegisterRouteImport } from './routes/register'
+import { Route as AuthenticatedAiTutorRouteImport } from './routes/_authenticated/ai-tutor'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticated/history'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
@@ -58,6 +59,11 @@ const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
   path: '/register',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedAiTutorRoute = AuthenticatedAiTutorRouteImport.update({
+  id: '/ai-tutor',
+  path: '/ai-tutor',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
@@ -179,6 +185,7 @@ export interface FileRoutesByFullPath {
   '/educator-signup': typeof EducatorSignupRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/ai-tutor': typeof AuthenticatedAiTutorRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/history': typeof AuthenticatedHistoryRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
@@ -205,6 +212,7 @@ export interface FileRoutesByTo {
   '/educator-signup': typeof EducatorSignupRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/ai-tutor': typeof AuthenticatedAiTutorRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/history': typeof AuthenticatedHistoryRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
@@ -233,6 +241,7 @@ export interface FileRoutesById {
   '/educator-signup': typeof EducatorSignupRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/_authenticated/ai-tutor': typeof AuthenticatedAiTutorRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/history': typeof AuthenticatedHistoryRoute
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
@@ -261,6 +270,7 @@ export interface FileRouteTypes {
     | '/educator-signup'
     | '/login'
     | '/register'
+    | '/ai-tutor'
     | '/dashboard'
     | '/history'
     | '/onboarding'
@@ -287,6 +297,7 @@ export interface FileRouteTypes {
     | '/educator-signup'
     | '/login'
     | '/register'
+    | '/ai-tutor'
     | '/dashboard'
     | '/history'
     | '/onboarding'
@@ -314,6 +325,7 @@ export interface FileRouteTypes {
     | '/educator-signup'
     | '/login'
     | '/register'
+    | '/_authenticated/ai-tutor'
     | '/_authenticated/dashboard'
     | '/_authenticated/history'
     | '/_authenticated/onboarding'
@@ -380,6 +392,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/register'
       preLoaderRoute: typeof RegisterRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/ai-tutor': {
+      id: '/_authenticated/ai-tutor'
+      path: '/ai-tutor'
+      fullPath: '/ai-tutor'
+      preLoaderRoute: typeof AuthenticatedAiTutorRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
@@ -542,6 +561,7 @@ const AuthenticatedAdminMaterialsRouteWithChildren =
   )
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAiTutorRoute: typeof AuthenticatedAiTutorRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedHistoryRoute: typeof AuthenticatedHistoryRoute
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
@@ -563,6 +583,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAiTutorRoute: AuthenticatedAiTutorRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedHistoryRoute: AuthenticatedHistoryRoute,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
