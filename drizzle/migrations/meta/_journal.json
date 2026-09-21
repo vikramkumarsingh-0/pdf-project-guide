@@ -113,6 +113,13 @@
       "when": 1789996748009,
       "tag": "0015_fix_study_pack_read_policies",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1789998063307,
+      "tag": "0016_set_primary_admin_email_kumarishubham177",
+      "breakpoints": true
     }
   ]
 }
