@@ -9,6 +9,7 @@ export const materialSubmissionSchema = z.object({
   type: materialTypeSchema,
   url: z.string().trim().max(2000).optional().default(''),
   tags: z.array(z.string().trim().min(1).max(40)).max(10),
+  topics: z.array(z.string().trim().min(1).max(60)).max(20).optional().default([]),
   authorId: z.string().uuid().nullable().optional(),
   filePath: z.string().trim().max(500).nullable().optional(),
   fileName: z.string().trim().max(255).nullable().optional(),

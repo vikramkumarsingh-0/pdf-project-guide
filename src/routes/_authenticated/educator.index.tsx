@@ -98,6 +98,7 @@ function EducatorPortal(){
 
   return <div className="page-wrap">
     <div className="educator-hero"><div>{author.image_url?<img src={author.image_url} alt={author.name}/>:<span className="author-avatar"><GraduationCap/></span>}</div><div><p className="eyebrow">Welcome back</p><h1>{author.name}</h1><p>{author.affiliation}</p>{author.expertise.length>0&&<div className="expertise-chips">{author.expertise.map(tag=><span key={tag}>{tag}</span>)}</div>}</div></div>
+    <div className="mb-4 flex flex-wrap gap-2"><Link to="/educator/materials"><Button variant="outline" size="sm"><Upload/>Upload course material</Button></Link><Link to="/educator/study-packs"><Button variant="outline" size="sm"><BookOpenCheck/>Course study packs</Button></Link></div>
     <div className="stats-grid">{statItems.map(({Icon,value,label})=><article className="stat" key={label}><span><Icon/></span><div><b>{value}</b><p>{label}</p></div></article>)}</div>
 
     <section className="section-block"><div className="section-heading"><div><p className="eyebrow"><Eye/> Reach</p><h2>Approved materials and most viewed</h2></div></div>

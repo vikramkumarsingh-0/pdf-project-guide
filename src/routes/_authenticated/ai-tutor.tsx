@@ -11,6 +11,11 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 
 export const Route = createFileRoute('/_authenticated/ai-tutor')({
+  validateSearch: (search: Record<string, unknown>) => ({
+    title: typeof search['title'] === 'string' ? (search['title'] as string) : undefined,
+    topic: typeof search['topic'] === 'string' ? (search['topic'] as string) : undefined,
+    material: typeof search['material'] === 'string' ? (search['material'] as string) : undefined,
+  }),
   head: () => ({ meta: [
     { title: 'AI study tutor | StudyFlow AI' },
     { name: 'description', content: 'Ask a study question or paste course material and get a personalized explanation plus practice questions.' },
@@ -26,8 +31,14 @@ type PastSession = { id: string; title: string; created_at: string }
 
 function AiTutor() {
   const { user } = Route.useRouteContext()
+  const search = Route.useSearch()
   const generate = useServerFn(generateTutorSession)
-  const [form, setForm] = useState({ title: '', question: '', material: '', level: 'intermediate' })
+  const [form, setForm] = useState({
+    title: search.title ?? '',
+    question: search.topic ? `Explain these topics with worked examples: ${search.topic}` : '',
+    material: search.material ?? '',
+    level: 'intermediate',
+  })
   const [busy, setBusy] = useState(false)
   const [result, setResult] = useState<TutorResult | null>(null)
   const [revealed, setRevealed] = useState<Record<number, boolean>>({})
